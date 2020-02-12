@@ -18,7 +18,6 @@ from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 import sys
 import subprocess
-import pdb
 
 
 # Given a result from the aligning with Kalign, trims residues from longer 2nd
@@ -189,8 +188,8 @@ def restore_codons(og_seqs):
         records.append(SeqRecord(new_seq, id=record.id,
                                  description=record.description))
     subprocess.call(['rm', 'aligned.fasta'])
-    SeqIO.write(records, 'codon_aligned.fasta', 'fasta')
-    SeqIO.write(records, 'codon_aligned.clustal', 'clustal')
+    SeqIO.write(records, 'kc-align.fasta', 'fasta')
+    SeqIO.write(records, 'kc-align.clustal', 'clustal')
 
 
 # For when inputs are both whole genomes
