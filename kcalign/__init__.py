@@ -1,17 +1,4 @@
 #!/usr/bin/env python
-# Takes as input a single FASTA sequence of interest, the start and end points
-# of the gene of interest in that sequence, and a multiFASTA of sequences to
-# align to, returns a multiple alignment of the gene of interest aligned to the
-# homologous gene in each other input sequence by performing multiple alignment
-# on the protein sequences and then restoring the original nucleotide sequence
-# while maintaining any gaps that may have been inserted. Allows for selection
-# analysis of small genomes (viruses and maybe some bacteria).
-# Can also be run in 'gene' mode where the reference input is a single
-# in-frame gene and does not require [start] and [end] parameters.
-# USAGE:
-# kc-align --mode genome --reference [reference FASTA] --reads [reads FASTA] --start [start] --end [end]
-# kc-align --mode gene --reference [reference FASTA] --reads [reads FASTA]
-# kc-align --mode mixed --reference [reference FASTA] --reads [reads FASTA]
 
 from Bio.Seq import Seq
 from Bio import SeqIO
