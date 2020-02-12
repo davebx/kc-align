@@ -5,29 +5,13 @@
 # homologous gene in each other input sequence by performing multiple alignment
 # on the protein sequences and then restoring the original nucleotide sequence
 # while maintaining any gaps that may have been inserted. Allows for selection
-# analysis of small genomes (viruses and maybe some bacteria)
+# analysis of small genomes (viruses and maybe some bacteria).
+# Can also be run in 'gene' mode where the reference input is a single
+# in-frame gene and does not require [start] and [end] parameters.
 # USAGE:
-# calign --mode genome --reference [reference FASTA] --reads [reads FASTA] --start [start] --end [end]
-# calign --mode gene --reference [reference FASTA] --reads [reads FASTA]
-# calign --mode mixed --reference [reference FASTA] --reads [reads FASTA]
-
-'''
-TESTING INPUTS:
-    Genome Mode:
-        Reference = MN908947.3.fasta
-        Reads = corona.fasta
-        Start = 21563
-        End = 25384
-    Gene Mode:
-        Reference = gene.fasta
-        Reads = genes.fasta
-    Half n' Half Mode:
-        Reference = gene.fasta
-        Reads = corona.fasta
-
-Running these inputs on their respective modes should all return the exact
-same outputs.
-'''
+# kc-align --mode genome --reference [reference FASTA] --reads [reads FASTA] --start [start] --end [end]
+# kc-align --mode gene --reference [reference FASTA] --reads [reads FASTA]
+# kc-align --mode mixed --reference [reference FASTA] --reads [reads FASTA]
 
 from Bio.Seq import Seq
 from Bio import SeqIO
