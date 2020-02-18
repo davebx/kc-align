@@ -1,0 +1,3 @@
+build/*
+dist/*
+kcalign.egg-info/*
