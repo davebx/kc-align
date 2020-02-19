@@ -125,6 +125,8 @@ def find_homologs(seq1, seq2):
     inds = [0, 1, 2]
     del inds[distances.index(min(distances))]
     for i in inds:
+        if min(distances) == 0:
+            break
         if (distances[i]/min(distances) < 1.5 
              and distances[i]/min(distances) > 0.5):
             return 1
@@ -266,7 +268,7 @@ def genome_mode(reference, reads, start, end):
     combine_align(records, ids, names, seqs)
     restore_codons(og_seqs)
     if len(err) > 0:
-        print('The following sequences were suspected of containing' \
+        print('The following sequences were suspected of containing ' \
               'frameshifts and so were thrown out before multiple alignment:')
         for e in err:
             print(e+'\n')
@@ -296,7 +298,7 @@ def gene_mode(reference, reads):
     combine_align(records, ids, names, seqs)
     restore_codons(og_seqs)
     if len(err) > 0:
-        print('The following sequences were suspected of containing' \
+        print('The following sequences were suspected of containing ' \
               'frameshifts and so were thrown out before multiple alignment:')
         for e in err:
             print(e+'\n')
@@ -315,7 +317,7 @@ def mixed_mode(reference, reads):
     combine_align(records, ids, names, seqs)
     restore_codons(og_seqs)
     if len(err) > 0:
-        print('The following sequences were suspected of containing' \
+        print('The following sequences were suspected of containing ' \
               'frameshifts and so were thrown out before multiple alignment:')
         for e in err:
             print(e+'\n')
