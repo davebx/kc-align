@@ -5,6 +5,8 @@ from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 import sys
 import subprocess
+import warnings
+warnings.filterwarnings('ignore')
 
 
 # Given a result from the aligning with Kalign, trims residues from longer 2nd
@@ -95,10 +97,14 @@ def extend_to_stop(prot_seq, frame, DNA_seq):
 # the homologous protein in the genome (currently checks the 3 coding strand
 # reading frames)
 # Calculates the Levenshtein distance of each candidate peptide to determine
-# the correct reading frame
-# If the Levenshtein distance divided by the length of the peptide of interest
-# is less than 0.5, that seqeunce is thrown out (removes poorly aligning
-# sequences)
+# the correct reading frame (lowest distance is correct)
+# To detect frameshifts, the Levenshtein distances of each reading frame with
+# the reference are compard. If the distance of the frame with the lowest 
+# distance divided by either of the other reading frame's distances is 
+# between 0.5 and 1.5 then a frameshift is likely. If there is no frameshift
+# the distance between the correct reading frame and the reference should
+# be considerably lower than the distance between the other reading frames
+# and the reference.
 def find_homologs(seq1, seq2):
     trans = []
     distances = []
@@ -108,7 +114,7 @@ def find_homologs(seq1, seq2):
         to_align = [SeqRecord(seq1, id='Seq1'), SeqRecord(trans0, id='Seq2')]
         SeqIO.write(to_align, 'tmp.fasta', 'fasta')
         subprocess.call(['kalign', '-i', 'tmp.fasta', '-o', 'out.fasta', '-d',
-                        'pair'])
+                        'pair'], stderr=subprocess.DEVNULL)
         alignments = []
         for record in SeqIO.parse('out.fasta', 'fasta'):
             alignments.append(record.seq)
@@ -116,15 +122,73 @@ def find_homologs(seq1, seq2):
         trans.append(Seq(trim(alignments, stops)))
         distances.append(distance(str(seq1), str(trans[-1])))
     subprocess.call(['rm', 'tmp.fasta', 'out.fasta'])
-    if distances.index(min(distances))/len(seq1) <= 0.5:
-        return (trans[distances.index(min(distances))],
-                distances.index(min(distances)))
-    else:
+    inds = [0, 1, 2]
+    del inds[distances.index(min(distances))]
+    for i in inds:
+        if (distances[i]/min(distances) < 1.5 
+             and distances[i]/min(distances) > 0.5):
+            return 1
+    return (trans[distances.index(min(distances))],
+            distances.index(min(distances)))
+
+
+# Determines if the homologous sequence found by find_homologs contains a
+# frameshift mutation by first calculating a sliding window of edit distances
+# in order to find the approximate location of the indel (done by finding the
+# region with the largest increase in edit distance between windows). An 
+# extra nucleotide is then inserted in that region, the sequence is converted
+# to amino acids, realigned with the reference and the edit distance between 
+# the alignments calculated. This is repeated one more time and if the edit 
+# distance of the alignments after inserting on or two extra nucleotides is
+# less than the distance without adding nucleotides then there is likely to
+# be a frameshift mutation and the function will return a value of 1. If no 
+# frameshift is detected, it returns 0. 
+def detect_frameshift(ref, read):
+    records = [SeqRecord(ref, id='reference'),
+               SeqRecord(read.translate(), id='read')]
+    SeqIO.write(records, 'tmp.fasta', 'fasta')
+    subprocess.call(['kalign', '-in', 'tmp.fasta', '-out', 'out.fasta', '-d',
+                     'pair'], stderr=subprocess.DEVNULL)
+    seqs = {}
+    for record in SeqIO.parse('out.fasta', 'fasta'):
+        seqs[record.id] = str(record.seq)
+    distances = []
+    for i in range(0, len(seqs['reference'])-50, 20):
+        distances.append(distance(seqs['reference'][i:i+50],
+                                  seqs['read'][i:i+50]))
+    diffs = []
+    for i in range(1, len(distances)):
+        diffs.append(distances[i]-distances[i-1])
+    ind = diffs.index(max(diffs))*60
+    new_distances = [distance(seqs['reference'], seqs['read'])]
+    records = [SeqRecord(ref, id='reference'),
+               SeqRecord((read[:ind]+'A'+read[ind:]).translate())]
+    SeqIO.write(records, 'tmp.fasta', 'fasta')
+    subprocess.call(['kalign', '-in', 'tmp.fasta', '-out', 'out.fasta', '-d',
+                     'pair'], stderr=subprocess.DEVNULL)
+    for record in SeqIO.parse('out.fasta', 'fasta'):
+        seqs[record.id] = str(record.seq)
+    new_distances.append(distance(seqs['reference'], seqs['read']))
+    records = [SeqRecord(ref, id='reference'),
+               SeqRecord((read[:ind]+'AA'+read[ind:]).translate())]
+    SeqIO.write(records, 'tmp.fasta', 'fasta')
+    subprocess.call(['kalign', '-in', 'tmp.fasta', '-out', 'out.fasta', '-d',
+                     'pair'], stderr=subprocess.DEVNULL)
+    for record in SeqIO.parse('out.fasta', 'fasta'):
+        seqs[record.id] = str(record.seq)
+    subprocess.call(['rm', 'out.fasta', 'tmp.fasta'])
+    new_distances.append(distance(seqs['reference'], seqs['read']))
+    if (new_distances[1] < new_distances[0] or 
+        new_distances[2] < new_distances[0]):
         return 1
+    else:
+        return 0
 
 
 # Use pairwise alignment with Kalign to determine the frame that the homolog
-# for the gene of interest is located
+# for the gene of interest is located. Will also look for any potential
+# frameshift mutations in the gene of interest and throw out the sequence
+# if one is detected.
 def create_lists(reads, seq, og_seqs):
     seqs = []
     names = []
@@ -133,15 +197,21 @@ def create_lists(reads, seq, og_seqs):
     for record in SeqIO.parse(reads, 'fasta'):
         print(record.id)
         result = find_homologs(seq[:-1], record.seq)
-        if result != 1:
+        if result == 1:
+            err.append(record.id)
+        else:
             ids.append(record.id)
             names.append(record.description)
             prot_seq = extend_to_stop(result[0], result[1], record.seq)
             seqs.append(prot_seq)
-            og_seqs[record.id] = extract_DNA_seq(record.seq[result[1]:],
+            og_seqs[record.id] = extract_DNA_seq(record.seq[result[1]:], 
                                                  seqs[-1])
-        else:
-            err.append(record.id)
+            shift = detect_frameshift(seq, og_seqs[record.id])
+            if shift == 1:
+                seqs = seqs[:-1]
+                names = names[:-1]
+                del og_seqs[record.id]
+                err.append(record.id)
     return seqs, names, ids, og_seqs, err
 
 
@@ -196,8 +266,8 @@ def genome_mode(reference, reads, start, end):
     combine_align(records, ids, names, seqs)
     restore_codons(og_seqs)
     if len(err) > 0:
-        print('The following sequences did not align sufficiently well to the\
-               chosen gene and were thrown out before multiple alignment:\n')
+        print('The following sequences were suspected of containing' \
+              'frameshifts and so were thrown out before multiple alignment:')
         for e in err:
             print(e+'\n')
 
@@ -208,19 +278,28 @@ def gene_mode(reference, reads):
     names = []
     seqs = []
     og_seqs = {}
+    err = []
     for record in SeqIO.parse(reference, 'fasta'):
         ids.append(record.id)
         names.append(record.description)
         seqs.append(record.seq.translate())
         og_seqs[record.id] = record.seq
     for record in SeqIO.parse(reads, 'fasta'):
-        ids.append(record.id)
-        names.append(record.description)
-        seqs.append(record.seq.translate())
-        og_seqs[record.id] = record.seq
+        if '*' in record.seq.translate()[:-1]:
+            err.append(record.id)
+        else:
+            ids.append(record.id)
+            names.append(record.description)
+            seqs.append(record.seq.translate())
+            og_seqs[record.id] = record.seq
     records = []
     combine_align(records, ids, names, seqs)
     restore_codons(og_seqs)
+    if len(err) > 0:
+        print('The following sequences were suspected of containing' \
+              'frameshifts and so were thrown out before multiple alignment:')
+        for e in err:
+            print(e+'\n')
 
 
 # For when reference input is an in-frame gene but the reads are whole genomes
@@ -236,7 +315,7 @@ def mixed_mode(reference, reads):
     combine_align(records, ids, names, seqs)
     restore_codons(og_seqs)
     if len(err) > 0:
-        print('The following sequences did not align sufficiently well to the\
-               chosen gene and were thrown out before multiple alignment:\n')
+        print('The following sequences were suspected of containing' \
+              'frameshifts and so were thrown out before multiple alignment:')
         for e in err:
             print(e+'\n')
