@@ -2,7 +2,7 @@
 
 Kc-Align is a codon-aware multiple aligner that uses Kalgin2 to produce in-frame gapped codon alignments for selection analysis of small genomes (mostly viral and some smaller bacterial genomes). Takes nucleotide seqeunces as inputs, converts them to their in-frame amino acid sequences, performs multiple alignment with Kalign, and then converts the alignments back to their original codon sequence while preserving the gaps. Produces two outputs: the gapped nucleotide alignments in FASTA format and in CLUSTAL format.
 
-Kc-Align will also attempt to detect any frameshift mutations in the input reads. If a frameshift is detected, that sequence will not be included in the multiple alignment and it's ID will be printed to stdout.
+Kc-Align will also attempt to detect any frameshift mutations in the input reads. If a frameshift is detected, that sequence will not be included in the multiple alignment and its ID will be printed to stdout.
 
 # Modes
 
