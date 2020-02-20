@@ -55,10 +55,15 @@ def reinsert_star(seq, gapped_seq):
 # DNA seqeunce that corresponds with the given gene
 def extract_DNA_seq(seq, trans):
     Pseq = seq.translate()
+    check = 0
     for i in range(len(Pseq)):
         if str(Pseq[i:i+len(trans)]) == trans:
+            check = 1
             break
-    return seq[i*3:(i+len(trans))*3+3]
+    if check == 1:
+        return seq[i*3:(i+len(trans))*3+3]
+    else:
+        return 1
 
 
 # Calculates Levenshtein distance between two strings
@@ -73,7 +78,7 @@ def distance(s1, s2):
                 distances_.append(distances[i1])
             else:
                 distances_.append(1+min((distances[i1], distances[i1+1],
-                	              distances_[-1])))
+                                  distances_[-1])))
         distances = distances_
     return distances[-1]
 
@@ -208,10 +213,14 @@ def create_lists(reads, seq, og_seqs):
             seqs.append(prot_seq)
             og_seqs[record.id] = extract_DNA_seq(record.seq[result[1]:], 
                                                  seqs[-1])
-            shift = detect_frameshift(seq, og_seqs[record.id])
+            if og_seqs[record.id] == 1:
+                shift = 1
+            else:
+                shift = detect_frameshift(seq, og_seqs[record.id])
             if shift == 1:
-                seqs = seqs[:-1]
+                ids = ids[:-1]
                 names = names[:-1]
+                seqs = seqs[:-1]
                 del og_seqs[record.id]
                 err.append(record.id)
     return seqs, names, ids, og_seqs, err
@@ -225,7 +234,7 @@ def combine_align(records, ids, names, seqs):
         records.append(SeqRecord(s, id=i, description=n))
     SeqIO.write(records, 'pre_align.fasta', 'fasta')
     subprocess.call(['kalign', '-in', 'pre_align.fasta', '-out',
-                     'aligned.fasta'])
+                     'aligned.fasta'], stderr=subprocess.DEVNULL)
     subprocess.call(['rm', 'pre_align.fasta'])
 
 
@@ -247,8 +256,8 @@ def restore_codons(og_seqs):
         records.append(SeqRecord(new_seq, id=record.id,
                                  description=record.description))
     subprocess.call(['rm', 'aligned.fasta'])
-    SeqIO.write(records, 'kc-align.fasta', 'fasta')
-    SeqIO.write(records, 'kc-align.clustal', 'clustal')
+    SeqIO.write(records, 'codon_aligned.fasta', 'fasta')
+    SeqIO.write(records, 'codon_aligned.clustal', 'clustal')
 
 
 # For when inputs are both whole genomes
