@@ -16,20 +16,20 @@ For the case when your "reference" is an in-frame gene while the "reads" are who
 
 ## USAGE:
 
-kc-align --mode genome --reference [reference FASTA] --reads [reads FASTA] --start [start] --end [end]
+#### kc-align --mode genome --reference [reference FASTA] --reads [reads FASTA] --start [start] --end [end]
 
 Ex: kc-align --mode genome --reference ref.fasta --reads reads.fasta --start 3512 --end 7831
 
-kc-align --mode gene --reference [reference FASTA] --reads [reads FASTA]
+#### kc-align --mode gene --reference [reference FASTA] --reads [reads FASTA]
 
 Ex: kc-align --mode gene --reference ref.fasta --reads reads.fasta
 
-kc-align --mode mixed --reference [reference FASTA] --reads [reads FASTA]
+#### kc-align --mode mixed --reference [reference FASTA] --reads [reads FASTA]
 
 Ex: kc-align --mode mixed --reference ref.fasta --reads reads.fasta
 
 For genes that are split into two parts and later joined together:
 
-kc-align --mode genome --reference [reference FASTA] --reads [reads FASTA] --start [start1,start2] --end [end1,end2]
+#### kc-align --mode genome --reference [reference FASTA] --reads [reads FASTA] --start [start1,start2] --end [end1,end2]
 
 Ex: kc-align --mode genome --reference ref.fasta --reads reads.fasta --start 3512,3511 --end 7831,3721
