@@ -1,6 +1,6 @@
 # Kc-Align
 
-Kc-Align is a codon-aware multiple aligner that uses Kalgin2 to produce in-frame gapped codon alignments for selection analysis of small genomes (mostly viral and some smaller bacterial genomes). Takes nucleotide seqeunces as inputs, converts them to their in-frame amino acid sequences, performs multiple alignment with Kalign, and then converts the alignments back to their original codon sequence while preserving the gaps. Produces two outputs: the gapped nucleotide alignments in FASTA format and in CLUSTAL format.
+Kc-Align is a codon-aware multiple aligner that uses Kalgin2 to produce in-frame gapped codon alignments for selection analysis of small genomes (mostly viral and some smaller bacterial genomes). Takes nucleotide seqeunces as inputs, converts them to their in-frame amino acid sequences, performs multiple alignment with Kalign, and then converts the alignments back to their original codon sequence while preserving the gaps. Produces three outputs: the gapped nucleotide alignments in FASTA format and in CLUSTAL format and the amino acid level alignment.
 
 Kc-Align will also attempt to detect any frameshift mutations in the input reads. If a frameshift is detected, that sequence will not be included in the multiple alignment and its ID will be printed to stdout.
 
@@ -18,6 +18,18 @@ For the case when your "reference" is an in-frame gene while the "reads" are who
 
 kc-align --mode genome --reference [reference FASTA] --reads [reads FASTA] --start [start] --end [end]
 
+Ex: kc-align --mode genome --reference ref.fasta --reads reads.fasta --start 3512 --end 7831
+
 kc-align --mode gene --reference [reference FASTA] --reads [reads FASTA]
 
+Ex: kc-align --mode gene --reference ref.fasta --reads reads.fasta
+
 kc-align --mode mixed --reference [reference FASTA] --reads [reads FASTA]
+
+Ex: kc-align --mode mixed --reference ref.fasta --reads reads.fasta
+
+For genes that are split into two parts and later joined together:
+
+kc-align --mode genome --reference [reference FASTA] --reads [reads FASTA] --start [start1,start2] --end [end1,end2]
+
+Ex: kc-align --mode genome --reference ref.fasta --reads reads.fasta --start 3512,3511 --end 7831,3721
