@@ -316,7 +316,7 @@ def restore_codons(og_seqs):
 
 # For when inputs are both whole genomes
 def genome_mode(reference, reads, start, end):
-    if ',' not in start and ',' not in end:
+    if ',' not in str(start) and ',' not in str(end):
         start = int(start)-1
         end = int(end)
         join = 0
