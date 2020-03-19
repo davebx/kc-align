@@ -7,8 +7,8 @@ def main():
     parser = argparse.ArgumentParser(description='Align a sequence against multiple reference.', epilog=long_description)
     parser.add_argument('--reference', '-r', dest='reference', action='store', required=True, help='Reference to align against')
     parser.add_argument('--reads', '-R', dest='reads', action='store', required=True, help='Reads to align')
-    parser.add_argument('--start', '-s', dest='start', type=int, action='store', help='Start position, required in genome mode')
-    parser.add_argument('--end', '-e', dest='end', type=int, action='store', help='End position, required in genome mode')
+    parser.add_argument('--start', '-s', dest='start', type=str, action='store', help='Start position, required in genome mode')
+    parser.add_argument('--end', '-e', dest='end', type=str, action='store', help='End position, required in genome mode')
     parser.add_argument('--mode', '-m', dest='mode', action='store', choices=['genome', 'gene', 'mixed'], required=True, help='Alignment mode')
     args = parser.parse_args()
 
