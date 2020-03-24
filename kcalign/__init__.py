@@ -34,6 +34,12 @@ def trim(align, trans):
     return no_gaps
 
 
+# Kalign3 might take a few seconds on larger datasets. Throw in a wait()
+# just to be safe.
+def invoke_kalign(command):
+    kaligner = subprocess.Popen(command, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+    kaligner.wait()
+
 # Reinserts '*' at end of gapped alignment to make finding the end of
 # the aligned portion more accurate
 def reinsert_star(seq, gapped_seq):
@@ -120,8 +126,7 @@ def find_homologs(seq1, seq2):
         stops = seq2[i:].translate()
         to_align = [SeqRecord(seq1, id='Seq1'), SeqRecord(trans0, id='Seq2')]
         SeqIO.write(to_align, 'tmp.fasta', 'fasta')
-        subprocess.call(['kalign', '-i', 'tmp.fasta', '-o', 'out.fasta'],
-                        stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+        invoke_kalign(['kalign', '-i', 'tmp.fasta', '-o', 'out.fasta'])
         alignments = []
         for record in SeqIO.parse('out.fasta', 'fasta'):
             alignments.append(record.seq)
@@ -154,9 +159,7 @@ def join_find_homologs(seqs, seq2):
             to_align = [SeqRecord(seq, id='Seq1'),
                         SeqRecord(trans0, id='Seq2')]
             SeqIO.write(to_align, 'tmp.fasta', 'fasta')
-            subprocess.call(['kalign', '-i', 'tmp.fasta', '-o', 'out.fasta'],
-                            stderr=subprocess.DEVNULL,
-                            stdout=subprocess.DEVNULL)
+            invoke_kalign(['kalign', '-i', 'tmp.fasta', '-o', 'out.fasta'])
             alignments = []
             for record in SeqIO.parse('out.fasta', 'fasta'):
                 alignments.append(record.seq)
@@ -194,8 +197,7 @@ def detect_frameshift(ref, read):
     records = [SeqRecord(ref, id='reference'),
                SeqRecord(read.translate(), id='read')]
     SeqIO.write(records, 'tmp.fasta', 'fasta')
-    subprocess.call(['kalign', '-in', 'tmp.fasta', '-out', 'out.fasta'],
-                    stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+    invoke_kalign(['kalign', '-i', 'tmp.fasta', '-o', 'out.fasta'])
     seqs = {}
     for record in SeqIO.parse('out.fasta', 'fasta'):
         seqs[record.id] = str(record.seq)
@@ -211,16 +213,14 @@ def detect_frameshift(ref, read):
     records = [SeqRecord(ref, id='reference'),
                SeqRecord((read[:ind]+'A'+read[ind:]).translate())]
     SeqIO.write(records, 'tmp.fasta', 'fasta')
-    subprocess.call(['kalign', '-in', 'tmp.fasta', '-out', 'out.fasta'],
-                    stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+    invoke_kalign(['kalign', '-i', 'tmp.fasta', '-o', 'out.fasta'])
     for record in SeqIO.parse('out.fasta', 'fasta'):
         seqs[record.id] = str(record.seq)
     new_distances.append(distance(seqs['reference'], seqs['read']))
     records = [SeqRecord(ref, id='reference'),
                SeqRecord((read[:ind]+'AA'+read[ind:]).translate())]
     SeqIO.write(records, 'tmp.fasta', 'fasta')
-    subprocess.call(['kalign', '-in', 'tmp.fasta', '-out', 'out.fasta'],
-                    stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+    invoke_kalign(['kalign', '-i', 'tmp.fasta', '-o', 'out.fasta'])
     for record in SeqIO.parse('out.fasta', 'fasta'):
         seqs[record.id] = str(record.seq)
     subprocess.call(['rm', 'out.fasta', 'tmp.fasta'])
@@ -287,9 +287,7 @@ def combine_align(records, ids, names, seqs):
     for i, n, s in zip(ids, names, seqs):
         records.append(SeqRecord(s, id=i, description=n))
     SeqIO.write(records, 'pre_align.fasta', 'fasta')
-    subprocess.call(['kalign', '-in', 'pre_align.fasta', '-out',
-                    'protein_align.fasta'], stderr=subprocess.DEVNULL,
-                    stdout=subprocess.DEVNULL)
+    invoke_kalign(['kalign', '-in', 'pre_align.fasta', '-out', 'protein_align.fasta'])
 
 
 # Restore original codon sequence while maintaining gaps and write to
