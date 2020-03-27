@@ -3,6 +3,9 @@
 from Bio.Seq import Seq
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
+import os
+import pty
+import shlex
 import sys
 import subprocess
 import warnings
@@ -36,9 +39,22 @@ def trim(align, trans):
 
 # Kalign3 might take a few seconds on larger datasets. Throw in a wait()
 # just to be safe.
-def invoke_kalign(command):
-    kaligner = subprocess.Popen(command, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+def invoke_kalign(input_file, output_file):
+    if not os.path.exists(input_file):
+        print('Input file missing')
+        exit(1)
+    # If STDIN is not a tty, kalign3 assumes that STDIN is an input file and fails to detect its type.
+    # Pass in a fake pty to work around this behavior, which is appropriate for command-line usage but
+    # doesn't work in a headless environment.
+    fakepty, _ = pty.openpty()
+    command = shlex.split('kalign -i %s -o %s' % (input_file, output_file))
+    kaligner = subprocess.Popen(command, stderr=subprocess.PIPE, stdout=subprocess.PIPE, stdin=fakepty)
     kaligner.wait()
+    stdout, stderr = kaligner.communicate()
+    if kaligner.returncode != 0:
+        print(stderr, file=sys.stderr)
+        exit(kaligner.returncode)
+
 
 # Reinserts '*' at end of gapped alignment to make finding the end of
 # the aligned portion more accurate
@@ -126,7 +142,7 @@ def find_homologs(seq1, seq2):
         stops = seq2[i:].translate()
         to_align = [SeqRecord(seq1, id='Seq1'), SeqRecord(trans0, id='Seq2')]
         SeqIO.write(to_align, 'tmp.fasta', 'fasta')
-        invoke_kalign(['kalign', '-i', 'tmp.fasta', '-o', 'out.fasta'])
+        invoke_kalign('tmp.fasta', 'out.fasta')
         alignments = []
         for record in SeqIO.parse('out.fasta', 'fasta'):
             alignments.append(record.seq)
@@ -159,7 +175,7 @@ def join_find_homologs(seqs, seq2):
             to_align = [SeqRecord(seq, id='Seq1'),
                         SeqRecord(trans0, id='Seq2')]
             SeqIO.write(to_align, 'tmp.fasta', 'fasta')
-            invoke_kalign(['kalign', '-i', 'tmp.fasta', '-o', 'out.fasta'])
+            invoke_kalign('tmp.fasta', 'out.fasta')
             alignments = []
             for record in SeqIO.parse('out.fasta', 'fasta'):
                 alignments.append(record.seq)
@@ -197,7 +213,7 @@ def detect_frameshift(ref, read):
     records = [SeqRecord(ref, id='reference'),
                SeqRecord(read.translate(), id='read')]
     SeqIO.write(records, 'tmp.fasta', 'fasta')
-    invoke_kalign(['kalign', '-i', 'tmp.fasta', '-o', 'out.fasta'])
+    invoke_kalign('tmp.fasta', 'out.fasta')
     seqs = {}
     for record in SeqIO.parse('out.fasta', 'fasta'):
         seqs[record.id] = str(record.seq)
@@ -213,14 +229,14 @@ def detect_frameshift(ref, read):
     records = [SeqRecord(ref, id='reference'),
                SeqRecord((read[:ind]+'A'+read[ind:]).translate())]
     SeqIO.write(records, 'tmp.fasta', 'fasta')
-    invoke_kalign(['kalign', '-i', 'tmp.fasta', '-o', 'out.fasta'])
+    invoke_kalign('tmp.fasta', 'out.fasta')
     for record in SeqIO.parse('out.fasta', 'fasta'):
         seqs[record.id] = str(record.seq)
     new_distances.append(distance(seqs['reference'], seqs['read']))
     records = [SeqRecord(ref, id='reference'),
                SeqRecord((read[:ind]+'AA'+read[ind:]).translate())]
     SeqIO.write(records, 'tmp.fasta', 'fasta')
-    invoke_kalign(['kalign', '-i', 'tmp.fasta', '-o', 'out.fasta'])
+    invoke_kalign('tmp.fasta', 'out.fasta')
     for record in SeqIO.parse('out.fasta', 'fasta'):
         seqs[record.id] = str(record.seq)
     subprocess.call(['rm', 'out.fasta', 'tmp.fasta'])
@@ -287,7 +303,7 @@ def combine_align(records, ids, names, seqs):
     for i, n, s in zip(ids, names, seqs):
         records.append(SeqRecord(s, id=i, description=n))
     SeqIO.write(records, 'pre_align.fasta', 'fasta')
-    invoke_kalign(['kalign', '-in', 'pre_align.fasta', '-out', 'protein_align.fasta'])
+    invoke_kalign('pre_align.fasta', 'protein_align.fasta')
 
 
 # Restore original codon sequence while maintaining gaps and write to
