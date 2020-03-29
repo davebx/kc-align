@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import argparse
+import pdb
 from kcalign import genome_mode, gene_mode, mixed_mode
 
 def main():
@@ -10,14 +11,15 @@ def main():
     parser.add_argument('--start', '-s', dest='start', type=str, action='store', help='Start position, required in genome mode')
     parser.add_argument('--end', '-e', dest='end', type=str, action='store', help='End position, required in genome mode')
     parser.add_argument('--mode', '-m', dest='mode', action='store', choices=['genome', 'gene', 'mixed'], required=True, help='Alignment mode')
+    parser.add_argument('--compress', '-c', dest='compress', action='store_true', help='Compress identical sequences')
     args = parser.parse_args()
 
     if args.mode == 'genome':
-        genome_mode(args.reference, args.reads, args.start, args.end)
+        genome_mode(args.reference, args.reads, args.start, args.end, args.compress)
     elif args.mode == 'gene':
-        gene_mode(args.reference, args.reads)
+        gene_mode(args.reference, args.reads, args.compress)
     else:
-        mixed_mode(args.reference, args.reads)
+        mixed_mode(args.reference, args.reads, args.compress)
 
 if __name__ == '__main__':
     exit(main())

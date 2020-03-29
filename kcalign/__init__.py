@@ -9,6 +9,7 @@ import shlex
 import sys
 import subprocess
 import warnings
+import itertools
 warnings.filterwarnings('ignore')
 
 
@@ -43,12 +44,14 @@ def invoke_kalign(input_file, output_file):
     if not os.path.exists(input_file):
         print('Input file missing')
         exit(1)
-    # If STDIN is not a tty, kalign3 assumes that STDIN is an input file and fails to detect its type.
-    # Pass in a fake pty to work around this behavior, which is appropriate for command-line usage but
-    # doesn't work in a headless environment.
+    # If STDIN is not a tty, kalign3 assumes that STDIN is an input file
+    # and fails to detect its type.
+    # Pass in a fake pty to work around this behavior, which is appropriate
+    # for command-line usage but doesn't work in a headless environment.
     fakepty, _ = pty.openpty()
     command = shlex.split('kalign -i %s -o %s' % (input_file, output_file))
-    kaligner = subprocess.Popen(command, stderr=subprocess.PIPE, stdout=subprocess.PIPE, stdin=fakepty)
+    kaligner = subprocess.Popen(command, stderr=subprocess.PIPE, stdout=subprocess.PIPE,
+                                stdin=fakepty)
     kaligner.wait()
     stdout, stderr = kaligner.communicate()
     if kaligner.returncode != 0:
@@ -260,7 +263,6 @@ def create_lists(reads, seq, og_seqs, join):
     if join == 0 and seq[-1] == '*':
         seq = seq[:-1]
     for record in SeqIO.parse(reads, 'fasta'):
-        print(record.id)
         if join == 0:
             result = find_homologs(seq, record.seq)
         elif join == 1:
@@ -304,11 +306,12 @@ def combine_align(records, ids, names, seqs):
         records.append(SeqRecord(s, id=i, description=n))
     SeqIO.write(records, 'pre_align.fasta', 'fasta')
     invoke_kalign('pre_align.fasta', 'protein_align.fasta')
+    #subprocess.call(['rm', 'pre_align.fasta'])
 
 
 # Restore original codon sequence while maintaining gaps and write to
 # file.
-def restore_codons(og_seqs):
+def restore_codons(og_seqs, names):
     records = []
     for record in SeqIO.parse('protein_align.fasta', 'fasta'):
         prot_seq = record.seq
@@ -323,13 +326,59 @@ def restore_codons(og_seqs):
             else:
                 new_seq += '---'
         records.append(SeqRecord(new_seq, id=record.id,
-                                 description=record.description))
+                                 description=names[record.id]))
+    subprocess.call(['rm', 'protein_align.fasta'])
     SeqIO.write(records, 'codon_align.fasta', 'fasta')
     SeqIO.write(records, 'codon_align.clustal', 'clustal')
 
 
-# For when inputs are both whole genomes
-def genome_mode(reference, reads, start, end):
+# Checks sequences for duplicates and compresses them into a single
+# representaitve sequence if found
+def compressor(seqs, names, ids, og_seqs):
+    all_sames = [[]]
+    for index, idd1 in enumerate(ids):
+        for s in all_sames:
+            if idd1 in s:
+                break
+            else:
+                pass
+        if idd1 in s:
+            pass
+        else:
+            same = [idd1]
+            for idd2 in ids[index+1:]:
+                if og_seqs[idd1] == og_seqs[idd2]:
+                    same.append(idd2)
+            all_sames.append(same)
+    all_sames = all_sames[1:]
+    new_seqs = []
+    new_names = []
+    new_ids = []
+    ref_id = str(set(og_seqs.keys())-set(ids))[2:-2]
+    new_og_seqs = {}
+    new_og_seqs[ref_id] = og_seqs[ref_id]
+    count = 0
+    for same in all_sames:
+        if len(same) == 1:
+            new_ids.append(same[0])
+            new_names.append(names[ids.index(same[0])])
+            new_seqs.append(seqs[ids.index(same[0])])
+            new_og_seqs[new_ids[-1]] = og_seqs[new_ids[-1]]
+        else:
+            new_ids.append('MultiSeq_'+str(count)+'_('+str(len(same))+')')
+            count += 1
+            name = ''
+            for s in same:
+                name += s
+                name += ','
+            new_names.append(name[:-1])
+            new_seqs.append(seqs[ids.index(same[0])])
+            new_og_seqs[new_ids[-1]] = og_seqs[same[0]]
+    return new_seqs, new_names, new_ids, new_og_seqs
+
+
+# For when inputs are whole genomes
+def genome_mode(reference, reads, start, end, compress):
     if ',' not in str(start) and ',' not in str(end):
         start = int(start)-1
         end = int(end)
@@ -352,6 +401,8 @@ def genome_mode(reference, reads, start, end):
             seq = record.seq[start % 3:].translate()[start//3:end//3]
             og_seqs[record.id] = record.seq[start:end]
     seqs, names, ids, og_seqs, err = create_lists(reads, seq, og_seqs, join)
+    if compress:
+        seqs, names, ids, og_seqs = compressor(seqs, names, ids, og_seqs)
     if join == 1:
         seq = seq[0]+seq[1]
     elif join == 0 and seq[-1] == '*':
@@ -362,7 +413,9 @@ def genome_mode(reference, reads, start, end):
         print('No homologous sequences were found')
         exit()
     combine_align(records, ids, names, seqs)
-    restore_codons(og_seqs)
+    names = dict(zip(ids, names))
+    names[idd] = name
+    restore_codons(og_seqs, names)
     if len(err) > 0:
         print('The following '+str(len(err))+' sequences were suspected of'
               'containing frameshifts or an early stop codon and so were'
@@ -373,7 +426,7 @@ def genome_mode(reference, reads, start, end):
 
 
 # For when inputs are in-frame genes
-def gene_mode(reference, reads):
+def gene_mode(reference, reads, compress):
     ids = []
     names = []
     seqs = []
@@ -392,9 +445,13 @@ def gene_mode(reference, reads):
             names.append(record.description)
             seqs.append(record.seq.translate())
             og_seqs[record.id] = record.seq
-    records = []
+    records = [SeqRecord(seqs[0], id=ids[0], description=names[0])]
+    if compress:
+        seqs, names, ids, og_seqs = compressor(seqs[1:], names[1:], ids[1:], og_seqs)
     combine_align(records, ids, names, seqs)
-    restore_codons(og_seqs)
+    new_names = dict(zip(ids, names))
+    new_names[records[0].id] = records[0].description
+    restore_codons(og_seqs, new_names)
     if len(err) > 0:
         print('The following '+str(len(err))+' sequences were suspected of'
               'containing frameshifts or an early stop codon and so were'
@@ -405,20 +462,30 @@ def gene_mode(reference, reads):
 
 
 # For when reference input is an in-frame gene but the reads are whole genomes
-def mixed_mode(reference, reads):
+def mixed_mode(reference, reads, compress):
+    join = 0
     og_seqs = {}
     for record in SeqIO.parse(reference, 'fasta'):
         idd = record.id
         name = record.description
         seq = record.seq.translate()
         og_seqs[record.id] = record.seq
-    seqs, names, ids, og_seqs, err = create_lists(reads, seq, og_seqs)
-    records = [SeqRecord(seq[:-1], id=idd, description=name)]
-    if len(seqs) == 1:
+    seqs, names, ids, og_seqs, err = create_lists(reads, seq, og_seqs, join)
+    if compress:
+        seqs, names, ids, og_seqs = compressor(seqs, names, ids, og_seqs)
+    if join == 1:
+        seq = seq[0]+seq[1]
+    elif join == 0 and seq[-1] == '*':
+        seq = seq[:-1]
+        og_seqs[idd] = og_seqs[idd][:-3]
+    records = [SeqRecord(seq, id=idd, description=name)]
+    if len(seqs) == 0:
         print('No homologous sequences were found')
         exit()
     combine_align(records, ids, names, seqs)
-    restore_codons(og_seqs)
+    names = dict(zip(ids, names))
+    names[idd] = name
+    restore_codons(og_seqs, names)
     if len(err) > 0:
         print('The following '+str(len(err))+' sequences were suspected of'
               'containing frameshifts or an early stop codon and so were'

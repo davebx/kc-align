@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="kcalign",
-    version="0.5.8",
+    version="0.5.9",
     author="Nick Keener",
     author_email="nickeener@gmail.com",
     description="Kalgin-based codon-aware aligner for multiple sequences",
