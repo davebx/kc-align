@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 import argparse
 import pdb
-from kcalign import genome_mode, gene_mode, mixed_mode
+#from kcalign import genome_mode, gene_mode, mixed_mode
+from __init__ import genome_mode, gene_mode, mixed_mode
+
 
 def main():
     long_description = 'Takes as input a single FASTA sequence of interest, the start and end points of the gene of interest in that sequence, and a multiFASTA of sequences to align to, returns a multiple alignment of the gene of interest aligned to the homologous gene in each other input sequence by performing multiple alignment on the protein sequences and then restoring the original nucleotide sequence while maintaining any gaps that may have been inserted.'

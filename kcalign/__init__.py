@@ -306,7 +306,7 @@ def combine_align(records, ids, names, seqs):
         records.append(SeqRecord(s, id=i, description=n))
     SeqIO.write(records, 'pre_align.fasta', 'fasta')
     invoke_kalign('pre_align.fasta', 'protein_align.fasta')
-    #subprocess.call(['rm', 'pre_align.fasta'])
+    subprocess.call(['rm', 'pre_align.fasta'])
 
 
 # Restore original codon sequence while maintaining gaps and write to
@@ -354,7 +354,7 @@ def compressor(seqs, names, ids, og_seqs):
     new_seqs = []
     new_names = []
     new_ids = []
-    ref_id = str(set(og_seqs.keys())-set(ids))[2:-2]
+    ref_id = ids[0]
     new_og_seqs = {}
     new_og_seqs[ref_id] = og_seqs[ref_id]
     count = 0
@@ -407,7 +407,8 @@ def genome_mode(reference, reads, start, end, compress):
         seq = seq[0]+seq[1]
     elif join == 0 and seq[-1] == '*':
         seq = seq[:-1]
-        og_seqs[idd] = og_seqs[idd][:-3]
+        if og_seqs[idd][-3:] in [['TAG', 'TAA', 'TGA']]:
+            og_seqs[idd] = og_seqs[idd][:-3]
     records = [SeqRecord(seq, id=idd, description=name)]
     if len(seqs) == 0:
         print('No homologous sequences were found')
