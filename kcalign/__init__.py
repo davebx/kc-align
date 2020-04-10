@@ -11,6 +11,7 @@ import subprocess
 import warnings
 import itertools
 warnings.filterwarnings('ignore')
+import pdb
 
 
 # Given a result from the aligning with Kalign, trims residues from
@@ -354,7 +355,7 @@ def compressor(seqs, names, ids, og_seqs):
     new_seqs = []
     new_names = []
     new_ids = []
-    ref_id = ids[0]
+    ref_id = str(set(og_seqs.keys())-set(ids))[2:-2]
     new_og_seqs = {}
     new_og_seqs[ref_id] = og_seqs[ref_id]
     count = 0
@@ -407,7 +408,7 @@ def genome_mode(reference, reads, start, end, compress):
         seq = seq[0]+seq[1]
     elif join == 0 and seq[-1] == '*':
         seq = seq[:-1]
-        if og_seqs[idd][-3:] in [['TAG', 'TAA', 'TGA']]:
+        if og_seqs[idd][-3:] in ['TAG', 'TAA', 'TGA']:
             og_seqs[idd] = og_seqs[idd][:-3]
     records = [SeqRecord(seq, id=idd, description=name)]
     if len(seqs) == 0:
