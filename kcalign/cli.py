@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 import argparse
-import pdb
-#from kcalign import genome_mode, gene_mode, mixed_mode
-from __init__ import genome_mode, gene_mode, mixed_mode
+from kcalign import genome_mode, gene_mode, mixed_mode
 
 
 def main():
