@@ -11,7 +11,6 @@ import subprocess
 import warnings
 import itertools
 warnings.filterwarnings('ignore')
-import pdb
 
 
 # Given a result from the aligning with Kalign, trims residues from
@@ -51,13 +50,25 @@ def invoke_kalign(input_file, output_file):
     # for command-line usage but doesn't work in a headless environment.
     fakepty, _ = pty.openpty()
     command = shlex.split('kalign -i %s -o %s' % (input_file, output_file))
-    kaligner = subprocess.Popen(command, stderr=subprocess.PIPE, stdout=subprocess.PIPE,
-                                stdin=fakepty)
+    kaligner = subprocess.Popen(command, stderr=subprocess.PIPE,
+                                stdout=subprocess.PIPE, stdin=fakepty)
     kaligner.wait()
     stdout, stderr = kaligner.communicate()
+    # If Kalign fails try again with MAFFT
     if kaligner.returncode != 0:
-        print(stderr, file=sys.stderr)
-        exit(kaligner.returncode)
+        command = shlex.split('mafft %s' % (input_file))
+        mafft = subprocess.Popen(command, stderr=subprocess.PIPE,
+                                 stdout=subprocess.PIPE, stdin=fakepty)
+        mafft.wait()
+        stdout, stderr = mafft.communicate()
+        with open(output_file, 'wb') as file:
+            file.write(stdout)
+        if mafft.returncode != 0:
+            return 1
+        else:
+            return 0
+    else:
+        return 0
 
 
 # Reinserts '*' at end of gapped alignment to make finding the end of
@@ -146,7 +157,9 @@ def find_homologs(seq1, seq2):
         stops = seq2[i:].translate()
         to_align = [SeqRecord(seq1, id='Seq1'), SeqRecord(trans0, id='Seq2')]
         SeqIO.write(to_align, 'tmp.fasta', 'fasta')
-        invoke_kalign('tmp.fasta', 'out.fasta')
+        kresult = invoke_kalign('tmp.fasta', 'out.fasta')
+        if kresult == 1:
+            return 1
         alignments = []
         for record in SeqIO.parse('out.fasta', 'fasta'):
             alignments.append(record.seq)
@@ -179,7 +192,9 @@ def join_find_homologs(seqs, seq2):
             to_align = [SeqRecord(seq, id='Seq1'),
                         SeqRecord(trans0, id='Seq2')]
             SeqIO.write(to_align, 'tmp.fasta', 'fasta')
-            invoke_kalign('tmp.fasta', 'out.fasta')
+            kresult = invoke_kalign('tmp.fasta', 'out.fasta')
+            if kresult == 1:
+                return 1
             alignments = []
             for record in SeqIO.parse('out.fasta', 'fasta'):
                 alignments.append(record.seq)
@@ -366,7 +381,7 @@ def compressor(seqs, names, ids, og_seqs):
             new_seqs.append(seqs[ids.index(same[0])])
             new_og_seqs[new_ids[-1]] = og_seqs[new_ids[-1]]
         else:
-            new_ids.append('MultiSeq_'+str(count)+'_('+str(len(same))+')')
+            new_ids.append('MultiSeq'+str(count)+'_'+str(len(same)))
             count += 1
             name = ''
             for s in same:
@@ -395,8 +410,8 @@ def genome_mode(reference, reads, start, end, compress):
         idd = record.id
         name = record.description
         if isinstance(start, tuple):
-            seq = (record.seq[start[0] % 3:].translate()[start[0]//3:end[0]//3],
-                   record.seq[start[1] % 3:].translate()[start[1]//3:end[1]//3])
+            seq = (record.seq[start[0] % 3:].translate(table=1)[start[0]//3:end[0]//3],
+                   record.seq[start[1] % 3:].translate(table=1)[start[1]//3:end[1]//3])
             og_seqs[record.id] = record.seq[start[0]:end[0]]+record.seq[start[1]:end[1]]
         else:
             seq = record.seq[start % 3:].translate()[start//3:end//3]
@@ -419,8 +434,8 @@ def genome_mode(reference, reads, start, end, compress):
     names[idd] = name
     restore_codons(og_seqs, names)
     if len(err) > 0:
-        print('The following '+str(len(err))+' sequences were suspected of'
-              'containing frameshifts or an early stop codon and so were'
+        print('The following '+str(len(err))+' sequence(s) were suspected of '
+              'containing frameshifts or an early stop codon and so were '
               'thrown out before multiple alignment:')
         for e in err:
             print(e)
@@ -449,14 +464,15 @@ def gene_mode(reference, reads, compress):
             og_seqs[record.id] = record.seq
     records = [SeqRecord(seqs[0], id=ids[0], description=names[0])]
     if compress:
-        seqs, names, ids, og_seqs = compressor(seqs[1:], names[1:], ids[1:], og_seqs)
+        seqs, names, ids, og_seqs = compressor(seqs[1:], names[1:], ids[1:],
+                                               og_seqs)
     combine_align(records, ids, names, seqs)
     new_names = dict(zip(ids, names))
     new_names[records[0].id] = records[0].description
     restore_codons(og_seqs, new_names)
     if len(err) > 0:
-        print('The following '+str(len(err))+' sequences were suspected of'
-              'containing frameshifts or an early stop codon and so were'
+        print('The following '+str(len(err))+' sequence(s) were suspected of '
+              'containing frameshifts or an early stop codon and so were '
               'thrown out before multiple alignment:')
         for e in err:
             print(e)
@@ -489,8 +505,8 @@ def mixed_mode(reference, reads, compress):
     names[idd] = name
     restore_codons(og_seqs, names)
     if len(err) > 0:
-        print('The following '+str(len(err))+' sequences were suspected of'
-              'containing frameshifts or an early stop codon and so were'
+        print('The following '+str(len(err))+' sequence(s) were suspected of '
+              'containing frameshifts or an early stop codon and so were '
               'thrown out before multiple alignment:')
         for e in err:
             print(e)
