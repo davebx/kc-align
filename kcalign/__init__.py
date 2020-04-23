@@ -48,22 +48,24 @@ def invoke_kalign(input_file, output_file):
     # and fails to detect its type.
     # Pass in a fake pty to work around this behavior, which is appropriate
     # for command-line usage but doesn't work in a headless environment.
-    fakepty, _ = pty.openpty()
+    fakepty, alsofakepty = pty.openpty()
     command = shlex.split('kalign -i %s -o %s' % (input_file, output_file))
     kaligner = subprocess.Popen(command, stderr=subprocess.PIPE,
                                 stdout=subprocess.PIPE, stdin=fakepty)
     kaligner.wait()
     stdout, stderr = kaligner.communicate()
+    os.close(fakepty)
+    os.close(alsofakepty)
     # If Kalign fails try again with MAFFT
     if kaligner.returncode != 0:
-        command = shlex.split('mafft %s' % (input_file))
-        mafft = subprocess.Popen(command, stderr=subprocess.PIPE,
-                                 stdout=subprocess.PIPE, stdin=fakepty)
-        mafft.wait()
-        stdout, stderr = mafft.communicate()
-        with open(output_file, 'wb') as file:
-            file.write(stdout)
+        with open(output_file, 'w') as out_fh:
+            command = shlex.split('mafft %s' % input_file)
+            mafft = subprocess.Popen(command, stdout=out_fh)
+            mafft.wait()
+            _, stderr = mafft.communicate()
         if mafft.returncode != 0:
+            sys.stderr.write('Error running mafft')
+            sys.stderr.write(stderr.decode('utf-8'))
             return 1
         else:
             return 0
@@ -88,7 +90,7 @@ def reinsert_star(seq, gapped_seq):
 
 # Given a single gene's protein sequence and its entire DNA genome,
 # finds the DNA seqeunce that corresponds with the given gene.
-def extract_DNA_seq(seq, trans):
+def extract_DNA_seq(seq, trans, shift):
     Pseq = seq.translate()
     check = 0
     for i in range(len(Pseq)):
@@ -96,7 +98,7 @@ def extract_DNA_seq(seq, trans):
             check = 1
             break
     if check == 1:
-        return seq[i*3:(i+len(trans))*3]
+        return seq[i*3+shift:(i+len(trans))*3+shift]
     else:
         return 1
 
@@ -106,7 +108,7 @@ def extract_DNA_seq(seq, trans):
 def join_extract_DNA_seq(seq, homologs):
     Dseqs = []
     for homolog in homologs:
-        frame = homolog[1]
+        shift = homolog[1]
         Pseq = seq[homolog[1]:].translate()
         check = 0
         for i in range(len(Pseq)):
@@ -114,7 +116,7 @@ def join_extract_DNA_seq(seq, homologs):
                 check = 1
                 break
         if check == 1:
-            Dseqs.append(seq[i*3+frame:(i+len(homolog[0]))*3+frame])
+            Dseqs.append(seq[i*3+shift:(i+len(homolog[0]))*3+shift])
         else:
             return 1
     return Dseqs[0]+Dseqs[1]
@@ -291,7 +293,7 @@ def create_lists(reads, seq, og_seqs, join):
             if join == 0:
                 seqs.append(result[0])
                 og_seqs[record.id] = extract_DNA_seq(record.seq[result[1]:],
-                                                     seqs[-1])
+                                                     seqs[-1], result[1])
             elif join == 1:
                 seqs.append(result[0][0]+result[1][0])
                 og_seqs[record.id] = join_extract_DNA_seq(record.seq, result)
