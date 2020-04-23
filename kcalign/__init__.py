@@ -90,7 +90,7 @@ def reinsert_star(seq, gapped_seq):
 
 # Given a single gene's protein sequence and its entire DNA genome,
 # finds the DNA seqeunce that corresponds with the given gene.
-def extract_DNA_seq(seq, trans, shift):
+def extract_DNA_seq(seq, trans):
     Pseq = seq.translate()
     check = 0
     for i in range(len(Pseq)):
@@ -98,7 +98,7 @@ def extract_DNA_seq(seq, trans, shift):
             check = 1
             break
     if check == 1:
-        return seq[i*3+shift:(i+len(trans))*3+shift]
+        return seq[i*3:(i+len(trans))*3]
     else:
         return 1
 
@@ -293,7 +293,7 @@ def create_lists(reads, seq, og_seqs, join):
             if join == 0:
                 seqs.append(result[0])
                 og_seqs[record.id] = extract_DNA_seq(record.seq[result[1]:],
-                                                     seqs[-1], result[1])
+                                                     seqs[-1])
             elif join == 1:
                 seqs.append(result[0][0]+result[1][0])
                 og_seqs[record.id] = join_extract_DNA_seq(record.seq, result)
