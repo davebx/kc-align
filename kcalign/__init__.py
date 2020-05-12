@@ -11,6 +11,7 @@ import subprocess
 import warnings
 import itertools
 warnings.filterwarnings('ignore')
+import concurrent.futures
 
 
 # Given a result from the aligning with Kalign, trims residues from
@@ -154,6 +155,86 @@ def distance(s1, s2):
 def find_homologs(seq1, seq2):
     trans = []
     distances = []
+    frames2 = []
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        frames = [0, 1, 2]
+        results = [executor.submit(test_frames, seq1,seq2,f) for f in frames]
+        for res in concurrent.futures.as_completed(results):
+            if res.result() == 1:
+                return 1
+            else:
+                trans.append(res.result()[0])
+                distances.append(res.result()[1])
+                frames2.append(res.result()[2])
+    subprocess.call('rm tmp*.fasta out*.fasta', shell=True)
+    del frames[distances.index(min(distances))]
+    for i in frames:
+        if min(distances) == 0:
+            break
+        if (distances[i]/min(distances) < 1.1 and
+           distances[i]/min(distances) > 0.9):
+            return 1
+    return (trans[distances.index(min(distances))],
+            frames2[distances.index(min(distances))])
+
+
+# Same as find_homologs() but for when the gene of interest is split
+# between two different reading frames.
+def join_find_homologs(seqs, seq2):
+    final = []
+    for seq in seqs:
+        trans = []
+        distances = []
+        frames2 = []
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            frames = [0, 1, 2]
+            results = [executor.submit(test_frames, seq,seq2,f) for f in frames]
+            for res in concurrent.futures.as_completed(results):
+                if res.result() == 1:
+                    return 1
+                else:
+                    trans.append(res.result()[0])
+                    distances.append(res.result()[1])
+                    frames2.append(res.result()[2])
+        subprocess.call('rm tmp*.fasta out*.fasta', shell=True)
+        del frames[distances.index(min(distances))]
+        for i in frames:
+            if min(distances) == 0:
+                break
+            if (distances[i]/min(distances) < 1.1 and
+               distances[i]/min(distances) > 0.9):
+                return 1
+        final.append((trans[distances.index(min(distances))],
+                      frames2[distances.index(min(distances))]))
+    return final
+
+
+# Function that finds the correct reading frame for homolog. Originally
+# a part of find_homologs but was split to enable parallelization.
+def test_frames(seq1, seq2, frame):
+    trans0 = seq2[frame:].translate(stop_symbol='')
+    stops = seq2[frame:].translate()
+    to_align = [SeqRecord(seq1, id='Seq1'), SeqRecord(trans0, id='Seq2')]
+    SeqIO.write(to_align, 'tmp'+str(frame)+'.fasta', 'fasta')
+    kresult = invoke_kalign('tmp'+str(frame)+'.fasta', 'out'+str(frame)+'.fasta')
+    if kresult == 1:
+        return 1
+    alignments = []
+    for record in SeqIO.parse('out'+str(frame)+'.fasta', 'fasta'):
+        alignments.append(record.seq)
+    alignments[0] = reinsert_star(seq1, alignments[0])
+    trans = Seq(trim(alignments, stops))
+    dist = distance(str(seq1), str(trans))
+    return (trans, dist, frame)
+
+
+
+
+# Originals
+'''
+def find_homologs(seq1, seq2):
+    trans = []
+    distances = []
     for i in range(0, 3):
         trans0 = seq2[i:].translate(stop_symbol='')
         stops = seq2[i:].translate()
@@ -181,8 +262,6 @@ def find_homologs(seq1, seq2):
             distances.index(min(distances)))
 
 
-# Same as find_homologs() but for when the gene of interest is split
-# between two different reading frames.
 def join_find_homologs(seqs, seq2):
     final = []
     for seq in seqs:
@@ -215,6 +294,9 @@ def join_find_homologs(seqs, seq2):
         final.append((trans[distances.index(min(distances))],
                       distances.index(min(distances))))
     return final
+'''
+
+
 
 
 # Determines if the homologous sequence found by find_homologs contains
@@ -268,6 +350,18 @@ def detect_frameshift(ref, read):
     else:
         return 0
 
+# Calculates N cotent of sequences. Returns 0 if N content is less than 5%
+# and 1 if it is above 5%
+def check_n(seq):
+    n = 0
+    for i in seq:
+        if i == 'N':
+            n += 1
+    if n/len(seq) < 0.05:
+        return 0
+    else:
+        return 1
+
 
 # Use pairwise alignment with Kalign to determine the frame that the
 # homolog for the gene of interest is located. Will also look for any
@@ -307,7 +401,11 @@ def create_lists(reads, seq, og_seqs, join):
                         shift = 1
                 else:
                     shift = 0
-            if shift == 1:
+            if shift == 0:
+                n_check = check_n(og_seqs[ids[-1]])
+            else:
+                n_check = 0
+            if shift == 1 or n_check == 1:
                 ids = ids[:-1]
                 names = names[:-1]
                 seqs = seqs[:-1]
@@ -437,8 +535,8 @@ def genome_mode(reference, reads, start, end, compress):
     restore_codons(og_seqs, names)
     if len(err) > 0:
         print('The following '+str(len(err))+' sequence(s) were suspected of '
-              'containing frameshifts or an early stop codon and so were '
-              'thrown out before multiple alignment:')
+              'containing frameshifts, an early stop codon, or contained too '
+              'many Ns and so were thrown out before multiple alignment:')
         for e in err:
             print(e)
         print('\n')
@@ -474,8 +572,8 @@ def gene_mode(reference, reads, compress):
     restore_codons(og_seqs, new_names)
     if len(err) > 0:
         print('The following '+str(len(err))+' sequence(s) were suspected of '
-              'containing frameshifts or an early stop codon and so were '
-              'thrown out before multiple alignment:')
+              'containing frameshifts, an early stop codon, or contained too '
+              'many Ns and so were thrown out before multiple alignment:')
         for e in err:
             print(e)
         print('\n')
@@ -508,8 +606,8 @@ def mixed_mode(reference, reads, compress):
     restore_codons(og_seqs, names)
     if len(err) > 0:
         print('The following '+str(len(err))+' sequence(s) were suspected of '
-              'containing frameshifts or an early stop codon and so were '
-              'thrown out before multiple alignment:')
+              'containing frameshifts, an early stop codon, or contained too '
+              'many Ns and so were thrown out before multiple alignment:')
         for e in err:
             print(e)
         print('\n')
