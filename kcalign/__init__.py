@@ -152,7 +152,7 @@ def distance(s1, s2):
 # is no frameshift the distance between the correct reading frame and
 # the reference should be considerably lower than the distance between
 # the other reading frames and the reference.
-def find_homologs(seq1, seq2):
+def para_find_homologs(seq1, seq2):
     trans = []
     distances = []
     frames2 = []
@@ -180,7 +180,7 @@ def find_homologs(seq1, seq2):
 
 # Same as find_homologs() but for when the gene of interest is split
 # between two different reading frames.
-def join_find_homologs(seqs, seq2):
+def para_join_find_homologs(seqs, seq2):
     final = []
     for seq in seqs:
         trans = []
@@ -230,8 +230,7 @@ def test_frames(seq1, seq2, frame):
 
 
 
-# Originals
-'''
+# Original non parallel versions
 def find_homologs(seq1, seq2):
     trans = []
     distances = []
@@ -294,7 +293,6 @@ def join_find_homologs(seqs, seq2):
         final.append((trans[distances.index(min(distances))],
                       distances.index(min(distances))))
     return final
-'''
 
 
 
@@ -367,7 +365,7 @@ def check_n(seq):
 # homolog for the gene of interest is located. Will also look for any
 # potential frameshift mutations in the gene of interest and throw out
 # the sequence if one is detected.
-def create_lists(reads, seq, og_seqs, join):
+def create_lists(reads, seq, og_seqs, join, para):
     seqs = []
     names = []
     ids = []
@@ -375,10 +373,16 @@ def create_lists(reads, seq, og_seqs, join):
     if join == 0 and seq[-1] == '*':
         seq = seq[:-1]
     for record in SeqIO.parse(reads, 'fasta'):
-        if join == 0:
-            result = find_homologs(seq, record.seq)
-        elif join == 1:
-            result = join_find_homologs(seq, record.seq)
+        if para:
+            if join == 0:
+                result = para_find_homologs(seq, record.seq)
+            elif join == 1:
+                result = para_join_find_homologs(seq, record.seq)
+        else:
+            if join == 0:
+                result = find_homologs(seq, record.seq)
+            elif join == 1:
+                result = join_find_homologs(seq, record.seq)
         if result == 1:
             err.append(record.id)
         else:
@@ -494,7 +498,7 @@ def compressor(seqs, names, ids, og_seqs):
 
 
 # For when inputs are whole genomes
-def genome_mode(reference, reads, start, end, compress):
+def genome_mode(reference, reads, start, end, compress, para):
     if ',' not in str(start) and ',' not in str(end):
         start = int(start)-1
         end = int(end)
@@ -516,7 +520,7 @@ def genome_mode(reference, reads, start, end, compress):
         else:
             seq = record.seq[start % 3:].translate()[start//3:end//3]
             og_seqs[record.id] = record.seq[start:end]
-    seqs, names, ids, og_seqs, err = create_lists(reads, seq, og_seqs, join)
+    seqs, names, ids, og_seqs, err = create_lists(reads, seq, og_seqs, join, para)
     if compress:
         seqs, names, ids, og_seqs = compressor(seqs, names, ids, og_seqs)
     if join == 1:
@@ -580,7 +584,7 @@ def gene_mode(reference, reads, compress):
 
 
 # For when reference input is an in-frame gene but the reads are whole genomes
-def mixed_mode(reference, reads, compress):
+def mixed_mode(reference, reads, compress, para):
     join = 0
     og_seqs = {}
     for record in SeqIO.parse(reference, 'fasta'):
@@ -588,7 +592,7 @@ def mixed_mode(reference, reads, compress):
         name = record.description
         seq = record.seq.translate()
         og_seqs[record.id] = record.seq
-    seqs, names, ids, og_seqs, err = create_lists(reads, seq, og_seqs, join)
+    seqs, names, ids, og_seqs, err = create_lists(reads, seq, og_seqs, join, para)
     if compress:
         seqs, names, ids, og_seqs = compressor(seqs, names, ids, og_seqs)
     if join == 1:
