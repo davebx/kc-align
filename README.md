@@ -83,3 +83,9 @@ If the `--parallel/-p` parameter is used in genome or mixed mode, the calculatio
 TODO
 
 Will post results from SARS-CoV-2 analysis
+
+## Speed
+
+TODO
+
+Speed test results
