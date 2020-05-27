@@ -37,7 +37,7 @@ Kc-Align is availbe through PyPI (`pip install kcalign`) and through Bioconda (`
 
 ### Modes
 
-Kc-Align can be run in three different modes, depending on your input data.
+Kc-Align can be run in three different modes, depending on your input data. These modes are: genome, gene, and mixed.
 
 #### Genome
 
