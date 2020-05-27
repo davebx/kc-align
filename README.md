@@ -31,6 +31,8 @@ Kc-Align is availbe through PyPI (`pip install kcalign`) and through Bioconda (`
 --end/-e          End position (required in genome mode)
 
 --compress/-c     Compress identical sequences
+
+--parallel/-p     Enable parallelization of homology search
 ```
 
 ### Modes
@@ -63,4 +65,8 @@ Kc-Align will output two files: a FASTA format alignment and a CLUSTAL format al
 
 ### Compress Identical Sequences
 
-If the `--compress/-c` parameter is specified, Kc-Align will compress identical sequences into a single sequence. In the FASTA output, compressed sequences will have an ID of the form MultiSeq[incremental index]_[number of sequences that were compressed] (ex: MultiSeq3_321, third compression with 321 sequences having that same sequence) while the description field is a comma-separated list of every ID that was compressed into that single sequence. 
+If the `--compress/-c` parameter is specified, Kc-Align will compress identical sequences into a single sequence. In the FASTA output, compressed sequences will have an ID of the form MultiSeq[incremental index]_[number of sequences that were compressed] (ex: MultiSeq3_321, third compression with 321 sequences having that same sequence) while the description field is a comma-separated list of every ID that was compressed into that single sequence. The reference sequence will not be compressed.
+
+### Parallelization
+
+If the `--parallel/-p` parameter is used in genome or mixed mode, the calculations for the homology search will be split between 3 cores (if possible), decreasing runtimes by up to 35%.
