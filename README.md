@@ -1,10 +1,11 @@
 # Overview
 
- Kc-Align is a fast and accurate tool for performing codon-aware multiple sequence alignments. It makes use of the very fast multiple alignment program Kalign3 to ensure maximum speed. Kc-Align also offers a feature no other translation alignment tool has: the ability to use full genomes as inputs instead of in-frame gene/open reading frames (ORFs). Every other translation alignment tool requires the sequence input to be in-frame coding sequences, requiring curation from the whole-genome sequences and also preventing use of assemblies that may not be properly annotated. Kc-Align solves this problem by using pairwise alignments to extract the sequence from each whole genome that is homologous to the sequence of a high quality and well annotated reference sequence. This is done in a parallel fashion to increase speed.
+Kc-Align is a fast and accurate tool for performing codon-aware multiple sequence alignments. It makes use of the very fast multiple alignment program Kalign3 to ensure maximum speed. Kc-Align is a extremely extremely versatile tool, capable of taking a variety of inputs and achieving the same result. Every other aligner requires the sequence inputs to be the coding sequences of the genes/open reading frames (ORFs) to be aligned, requiring curation from the whole-genome sequences and also preventing use of assemblies that may not be properly annotated. Kc-Align solves this problem by using pairwise alignments to extract the sequence from each whole genome that is homologous to the sequence of a high quality and well annotated reference sequence. This feautre may also be bypassed for those who already have curated data and simply desire a quick and accurate codon-aware multiple aligner (see Modes below).
+
 
 # Obtaining Kc-Align
 
-Kc-Align is availbe through PyPI (`pip install kcalign`) and through Bioconda (`conda install kc-align`). Alternatively, a GUI interface for Kc-Align is installed and available for use on Galaxy (usegalaxy.org).
+Kc-Align is availbe through PyPI (`pip install kcalign`) and through Bioconda (`conda install kc-align`). Alternatively, a GUI interface for Kc-Align is installed and available for use on Galaxy (http://usegalaxy.org).
 
 # Using Kc-Align
 
@@ -54,24 +55,5 @@ If the input sequences are instead all in-frame genes (start codon to end codon)
 
 #### Mixed
 
-For the case when your "reference" is an in-frame gene while all other sequences are whole genomes, the "mixed" mode can be used. Like gene mode, this mode does not require the start and end point position parameters but like genome mode it will perform homology searching in order to extract the sequences homologous to the reference from the other input sequences.
+For the case when your reference is an in-frame gene while all other sequences are whole genomes, the "mixed" mode can be used. Like gene mode, this mode does not require the start and end point position parameters but like genome mode it will perform homology searching in order to extract the sequences homologous to the reference from the other input sequences.
 
-## USAGE:
-
-#### kc-align --mode genome --reference [reference FASTA] --reads [reads FASTA] --start [start] --end [end]
-
-Ex: kc-align --mode genome --reference ref.fasta --reads reads.fasta --start 3512 --end 7831
-
-#### kc-align --mode gene --reference [reference FASTA] --reads [reads FASTA]
-
-Ex: kc-align --mode gene --reference ref.fasta --reads reads.fasta
-
-#### kc-align --mode mixed --reference [reference FASTA] --reads [reads FASTA]
-
-Ex: kc-align --mode mixed --reference ref.fasta --reads reads.fasta
-
-For genes that are split into two parts and later joined together:
-
-#### kc-align --mode genome --reference [reference FASTA] --reads [reads FASTA] --start [start1,start2] --end [end1,end2]
-
-Ex: kc-align --mode genome --reference ref.fasta --reads reads.fasta --start 3512,3511 --end 7831,3721
