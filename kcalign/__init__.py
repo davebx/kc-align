@@ -498,7 +498,7 @@ def compressor(seqs, names, ids, og_seqs):
 
 
 # For when inputs are whole genomes
-def genome_mode(reference, reads, start, end, compress, para):
+def genome_mode(reference, reads, start, end, compress):
     if ',' not in str(start) and ',' not in str(end):
         start = int(start)-1
         end = int(end)
@@ -584,7 +584,7 @@ def gene_mode(reference, reads, compress):
 
 
 # For when reference input is an in-frame gene but the reads are whole genomes
-def mixed_mode(reference, reads, compress, para):
+def mixed_mode(reference, reads, compress):
     join = 0
     og_seqs = {}
     for record in SeqIO.parse(reference, 'fasta'):
