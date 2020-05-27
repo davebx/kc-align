@@ -57,3 +57,10 @@ If the input sequences have already been trimmed to the coding sequences of the 
 
 For the case when your reference is a coding sequence while all other sequences are whole genomes. Like gene mode, this mode does not require the start and end point position parameters but like genome mode it will perform homology searching in order to extract the sequences homologous to the reference from the other input sequences.
 
+### Outputs
+
+Kc-Align will output two files: a FASTA format alignment and a CLUSTAL format alignment.
+
+### Compress Identical Sequences
+
+If the `--compress/-c` parameter is specified, Kc-Align will compress identical sequences into a single sequence. In the FASTA output, compressed sequences will have an ID of the form MultiSeq[incremental index]_[number of sequences that were compressed] (ex: MultiSeq3_321, third compression with 321 sequences having that same sequence) while the description field is a comma-separated list of every ID that was compressed into that single sequence. 
