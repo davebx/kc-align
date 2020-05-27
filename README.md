@@ -1,11 +1,11 @@
 # Kc-Align
 
-Kc-Align is a fast and accurate tool for performing codon-aware multiple sequence alignments. It makes use of the very fast multiple alignment program Kalign3 to ensure maximum speed. Kc-Align is a extremely extremely versatile tool, capable of taking a variety of inputs and achieving the same result. Every other aligner requires the sequence inputs to be the coding sequences of the genes/open reading frames (ORFs) to be aligned, requiring curation from the whole-genome sequences and also preventing use of assemblies that may not be properly annotated. Kc-Align solves this problem by using pairwise alignments to extract the sequence from each whole genome that is homologous to the sequence of a high quality and well annotated reference sequence. This feautre may also be bypassed for those who already have curated data and simply desire a quick and accurate codon-aware multiple aligner (see Modes below).
+Kc-Align is a fast and accurate tool for performing codon-aware multiple sequence alignments. It makes use of the very fast multiple alignment program Kalign3 to ensure maximum speed. Kc-Align is a extremely extremely versatile tool, capable of taking a variety of inputs and achieving the same result. Every other aligner requires the sequence inputs to be the coding sequences of the gene/open reading frame (ORF) to be aligned, requiring curation from the whole-genome sequences and also preventing use of assemblies that may not be properly annotated. Kc-Align solves this problem by using pairwise alignments to extract the sequence from each whole genome that is homologous to the sequence of a high quality and well annotated reference sequence. This feautre may also be bypassed for those who already have curated data and simply desire a quick and accurate codon-aware multiple aligner (see Modes below).
 
 
 ## Obtaining Kc-Align
 
-Kc-Align is availbe through PyPI (`pip install kcalign`) and through Bioconda (`conda install kc-align`). Alternatively, a GUI interface for Kc-Align is installed and available for use on Galaxy (http://usegalaxy.org).
+Kc-Align is availbe through PyPI (`pip install kcalign`) and through Bioconda (`conda install kcalign`). Alternatively, a GUI interface for Kc-Align is installed and available for use on Galaxy (http://usegalaxy.org).
 
 ## Using Kc-Align
 
