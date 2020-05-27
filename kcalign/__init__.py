@@ -166,7 +166,7 @@ def para_find_homologs(seq1, seq2):
                 trans.append(res.result()[0])
                 distances.append(res.result()[1])
                 frames2.append(res.result()[2])
-    subprocess.call('rm tmp*.fasta out*.fasta', shell=True)
+    subprocess.call('rm tmpfilexyz*.fasta outfilexyz*.fasta', shell=True)
     del frames[distances.index(min(distances))]
     for i in frames:
         if min(distances) == 0:
@@ -196,7 +196,7 @@ def para_join_find_homologs(seqs, seq2):
                     trans.append(res.result()[0])
                     distances.append(res.result()[1])
                     frames2.append(res.result()[2])
-        subprocess.call('rm tmp*.fasta out*.fasta', shell=True)
+        subprocess.call('rm tmpfilexyz*.fasta outfilexyz*.fasta', shell=True)
         del frames[distances.index(min(distances))]
         for i in frames:
             if min(distances) == 0:
@@ -215,12 +215,12 @@ def test_frames(seq1, seq2, frame):
     trans0 = seq2[frame:].translate(stop_symbol='')
     stops = seq2[frame:].translate()
     to_align = [SeqRecord(seq1, id='Seq1'), SeqRecord(trans0, id='Seq2')]
-    SeqIO.write(to_align, 'tmp'+str(frame)+'.fasta', 'fasta')
-    kresult = invoke_kalign('tmp'+str(frame)+'.fasta', 'out'+str(frame)+'.fasta')
+    SeqIO.write(to_align, 'tmpfilexyz'+str(frame)+'.fasta', 'fasta')
+    kresult = invoke_kalign('tmpfilexyz'+str(frame)+'.fasta', 'outfilexyz'+str(frame)+'.fasta')
     if kresult == 1:
         return 1
     alignments = []
-    for record in SeqIO.parse('out'+str(frame)+'.fasta', 'fasta'):
+    for record in SeqIO.parse('outfilexyz'+str(frame)+'.fasta', 'fasta'):
         alignments.append(record.seq)
     alignments[0] = reinsert_star(seq1, alignments[0])
     trans = Seq(trim(alignments, stops))
@@ -238,17 +238,17 @@ def find_homologs(seq1, seq2):
         trans0 = seq2[i:].translate(stop_symbol='')
         stops = seq2[i:].translate()
         to_align = [SeqRecord(seq1, id='Seq1'), SeqRecord(trans0, id='Seq2')]
-        SeqIO.write(to_align, 'tmp.fasta', 'fasta')
-        kresult = invoke_kalign('tmp.fasta', 'out.fasta')
+        SeqIO.write(to_align, 'tmpfilexyz.fasta', 'fasta')
+        kresult = invoke_kalign('tmpfilexyz.fasta', 'outfilexyz.fasta')
         if kresult == 1:
             return 1
         alignments = []
-        for record in SeqIO.parse('out.fasta', 'fasta'):
+        for record in SeqIO.parse('outfilexyz.fasta', 'fasta'):
             alignments.append(record.seq)
         alignments[0] = reinsert_star(seq1, alignments[0])
         trans.append(Seq(trim(alignments, stops)))
         distances.append(distance(str(seq1), str(trans[-1])))
-    subprocess.call(['rm', 'tmp.fasta', 'out.fasta'])
+    subprocess.call(['rm', 'tmpfilexyz.fasta', 'outfilexyz.fasta'])
     inds = [0, 1, 2]
     del inds[distances.index(min(distances))]
     for i in inds:
@@ -271,17 +271,17 @@ def join_find_homologs(seqs, seq2):
             stops = seq2[i:].translate()
             to_align = [SeqRecord(seq, id='Seq1'),
                         SeqRecord(trans0, id='Seq2')]
-            SeqIO.write(to_align, 'tmp.fasta', 'fasta')
-            kresult = invoke_kalign('tmp.fasta', 'out.fasta')
+            SeqIO.write(to_align, 'tmpfilexyz.fasta', 'fasta')
+            kresult = invoke_kalign('tmpfilexyz.fasta', 'outfilexyz.fasta')
             if kresult == 1:
                 return 1
             alignments = []
-            for record in SeqIO.parse('out.fasta', 'fasta'):
+            for record in SeqIO.parse('outfilexyz.fasta', 'fasta'):
                 alignments.append(record.seq)
             alignments[0] = reinsert_star(seq, alignments[0])
             trans.append(Seq(trim(alignments, stops)))
             distances.append(distance(str(seq), str(trans[-1])))
-        subprocess.call(['rm', 'tmp.fasta', 'out.fasta'])
+        subprocess.call(['rm', 'tmpfilexyz.fasta', 'outfilexyz.fasta'])
         inds = [0, 1, 2]
         del inds[distances.index(min(distances))]
         for i in inds:
@@ -313,10 +313,10 @@ def join_find_homologs(seqs, seq2):
 def detect_frameshift(ref, read):
     records = [SeqRecord(ref, id='reference'),
                SeqRecord(read.translate(), id='read')]
-    SeqIO.write(records, 'tmp.fasta', 'fasta')
-    invoke_kalign('tmp.fasta', 'out.fasta')
+    SeqIO.write(records, 'tmpfilexyz.fasta', 'fasta')
+    invoke_kalign('tmpfilexyz.fasta', 'outfilexyz.fasta')
     seqs = {}
-    for record in SeqIO.parse('out.fasta', 'fasta'):
+    for record in SeqIO.parse('outfilexyz.fasta', 'fasta'):
         seqs[record.id] = str(record.seq)
     distances = []
     for i in range(0, len(seqs['reference'])-30, 10):
@@ -329,18 +329,18 @@ def detect_frameshift(ref, read):
     new_distances = [distance(seqs['reference'], seqs['read'])]
     records = [SeqRecord(ref, id='reference'),
                SeqRecord((read[:ind]+'A'+read[ind:]).translate())]
-    SeqIO.write(records, 'tmp.fasta', 'fasta')
-    invoke_kalign('tmp.fasta', 'out.fasta')
-    for record in SeqIO.parse('out.fasta', 'fasta'):
+    SeqIO.write(records, 'tmpfilexyz.fasta', 'fasta')
+    invoke_kalign('tmpfilexyz.fasta', 'outfilexyz.fasta')
+    for record in SeqIO.parse('outfilexyz.fasta', 'fasta'):
         seqs[record.id] = str(record.seq)
     new_distances.append(distance(seqs['reference'], seqs['read']))
     records = [SeqRecord(ref, id='reference'),
                SeqRecord((read[:ind]+'AA'+read[ind:]).translate())]
-    SeqIO.write(records, 'tmp.fasta', 'fasta')
-    invoke_kalign('tmp.fasta', 'out.fasta')
-    for record in SeqIO.parse('out.fasta', 'fasta'):
+    SeqIO.write(records, 'tmpfilexyz.fasta', 'fasta')
+    invoke_kalign('tmpfilexyz.fasta', 'outfilexyz.fasta')
+    for record in SeqIO.parse('outfilexyz.fasta', 'fasta'):
         seqs[record.id] = str(record.seq)
-    subprocess.call(['rm', 'out.fasta', 'tmp.fasta'])
+    subprocess.call(['rm', 'outfilexyz.fasta', 'tmpfilexyz.fasta'])
     new_distances.append(distance(seqs['reference'], seqs['read']))
     if (new_distances[1] <= new_distances[0] or
        new_distances[2] <= new_distances[0]):
@@ -498,7 +498,7 @@ def compressor(seqs, names, ids, og_seqs):
 
 
 # For when inputs are whole genomes
-def genome_mode(reference, reads, start, end, compress):
+def genome_mode(reference, reads, start, end, compress, para):
     if ',' not in str(start) and ',' not in str(end):
         start = int(start)-1
         end = int(end)
@@ -584,7 +584,7 @@ def gene_mode(reference, reads, compress):
 
 
 # For when reference input is an in-frame gene but the reads are whole genomes
-def mixed_mode(reference, reads, compress):
+def mixed_mode(reference, reads, compress, para):
     join = 0
     og_seqs = {}
     for record in SeqIO.parse(reference, 'fasta'):
