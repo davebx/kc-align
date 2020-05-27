@@ -20,11 +20,11 @@ Kc-Align is availbe through PyPI (`pip install kcalign`) and through Bioconda (`
 ### Arguments:
 
 ```
---mode/-m         Alignment mode (genome, gene, or mixed)
+--mode/-m         Alignment mode (genome, gene, or mixed) (required)
 
---reference/-r    Reference sequences to align against
+--reference/-r    Reference sequences to align against (required)
 
---sequences/-S    Other sequences to align
+--sequences/-S    Other sequences to align (required)
 
 --start/-s        Start position (required in genome mode)
 
