@@ -6,7 +6,7 @@ Kc-Align is a fast and accurate tool for performing codon-aware multiple sequenc
 
 In a codon-aware alignment, coding sequences of nucleotides are converted to their amino acid sequences before being aligned and then following the alignment, the original nucleotide sequence of each sequence in the alignment is restored, converting any gap character that was inserted into three consecutive gaps to represent to inserted or deleted codon. This method of alignment prevents synonymous mutations from affecting the alignment while also preserving them for downstream analyses such as dN/dS calculations.
 
-## What Can Kc-Align be Used For
+## What Can Kc-Align be Used For?
 
 Kc-Align can be used to produce accurate and high quality MSA that can be used for various bioinformatic analyses such as homology modeling, phylogenetic reconstruction, and evolutionary selection analysis. These downstream analyses are heavily affected by the quality of the alignment that they are given and by aligning sequences on a codon-level, alignments from Kc-Align are able to produce more accurate downstream results. 
 
