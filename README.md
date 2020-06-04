@@ -33,9 +33,9 @@ Kc-Align is availbe through PyPI (`pip install kcalign`) and through Bioconda (`
 
 --sequences/-S    Other sequences to align (required)
 
---start/-s        Start position (required in genome mode)
+--start/-s        1-based start position (required in genome mode)
 
---end/-e          End position (required in genome mode)
+--end/-e          1-based end position (required in genome mode)
 
 --compress/-c     Compress identical sequences
 
