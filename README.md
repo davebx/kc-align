@@ -40,6 +40,8 @@ Kc-Align is availbe through PyPI (`pip install kcalign`) and through Bioconda (`
 --compress/-c     Compress identical sequences
 
 --parallel/-p     Enable parallelization of homology search
+
+--table/-t        Choose an alternative translation table (See https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi for values)
 ```
 
 ### Modes
