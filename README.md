@@ -1,7 +1,14 @@
-# Kc-Align
+# Overview
 
 Kc-Align is a fast and accurate tool for performing codon-aware multiple sequence alignments (MSA). It makes use of the very fast multiple alignment program Kalign3 to ensure maximum speed. Kc-Align is a extremely extremely versatile tool, capable of taking a variety of inputs and achieving the same result. Every other aligner requires the sequence inputs to be the coding sequences of the gene/open reading frame (ORF) to be aligned, requiring curation from the whole-genome sequences and also preventing use of assemblies that may not be properly annotated. Kc-Align solves this problem by using pairwise alignments to extract the sequence from each whole genome that is homologous to the sequence of a high quality and well annotated reference sequence. This feautre may also be bypassed for those who already have curated data and simply desire a quick and accurate codon-aware multiple aligner (see Modes below).
 
+## What Is a Codon-Alignment?
+
+In a codon-aware alignment, coding sequences of nucleotides are converted to their amino acid sequences before being aligned and then following the alignment, the original nucleotide sequence of each sequence in the alignment is restored, converting any gap character that was inserted into three consecutive gaps to represent to inserted or deleted codon. This method of alignment prevents synonymous mutations from affecting the alignment while also preserving them for downstream analyses such as dN/dS calculations.
+
+## What Can Kc-Align be Used For?
+
+Kc-Align can be used to produce accurate and high quality MSA that can be used for various bioinformatic analyses such as homology modeling, phylogenetic reconstruction, and evolutionary selection analysis. These downstream analyses are heavily affected by the quality of the alignment that they are given and by aligning sequences on a codon-level, alignments from Kc-Align are able to produce more accurate downstream results. 
 
 ## Obtaining Kc-Align
 
@@ -26,16 +33,18 @@ Kc-Align is availbe through PyPI (`pip install kcalign`) and through Bioconda (`
 
 --sequences/-S    Other sequences to align (required)
 
---start/-s        Start position (required in genome mode)
+--start/-s        1-based start position (required in genome mode)
 
---end/-e          End position (required in genome mode)
+--end/-e          1-based end position (required in genome mode)
 
 --compress/-c     Compress identical sequences
+
+--parallel/-p     Enable parallelization of homology search
 ```
 
 ### Modes
 
-Kc-Align can be run in three different modes, depending on your input data.
+Kc-Align can be run in three different modes, depending on your input data. These modes are: genome, gene, and mixed.
 
 #### Genome
 
@@ -63,4 +72,20 @@ Kc-Align will output two files: a FASTA format alignment and a CLUSTAL format al
 
 ### Compress Identical Sequences
 
-If the `--compress/-c` parameter is specified, Kc-Align will compress identical sequences into a single sequence. In the FASTA output, compressed sequences will have an ID of the form MultiSeq[incremental index]_[number of sequences that were compressed] (ex: MultiSeq3_321, third compression with 321 sequences having that same sequence) while the description field is a comma-separated list of every ID that was compressed into that single sequence. 
+If the `--compress/-c` parameter is specified, Kc-Align will compress identical sequences into a single sequence. In the FASTA output, compressed sequences will have an ID of the form MultiSeq[incremental index]_[number of sequences that were compressed] (ex: MultiSeq3_321, third compression with 321 sequences having that same sequence) while the description field is a comma-separated list of every ID that was compressed into that single sequence. The reference sequence will not be compressed.
+
+### Parallelization
+
+If the `--parallel/-p` parameter is used in genome or mixed mode, the calculations for the homology search will be split between 3 cores (if possible), decreasing runtimes by up to 35%.
+
+## Kc-Align In Action
+
+TODO
+
+Will post results from SARS-CoV-2 analysis
+
+## Speed
+
+TODO
+
+Speed test results
