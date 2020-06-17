@@ -91,8 +91,8 @@ def reinsert_star(seq, gapped_seq):
 
 # Given a single gene's protein sequence and its entire DNA genome,
 # finds the DNA seqeunce that corresponds with the given gene.
-def extract_DNA_seq(seq, trans):
-    Pseq = seq.translate()
+def extract_DNA_seq(seq, trans, tab):
+    Pseq = seq.translate(table=tab)
     check = 0
     for i in range(len(Pseq)):
         if str(Pseq[i:i+len(trans)]) == trans:
@@ -106,11 +106,11 @@ def extract_DNA_seq(seq, trans):
 
 # Same a extract_DNA_seq() but for when the gene of interests is split
 # between two different reading frames.
-def join_extract_DNA_seq(seq, homologs):
+def join_extract_DNA_seq(seq, homologs, tab):
     Dseqs = []
     for homolog in homologs:
         shift = homolog[1]
-        Pseq = seq[homolog[1]:].translate()
+        Pseq = seq[homolog[1]:].translate(table=tab)
         check = 0
         for i in range(len(Pseq)):
             if str(Pseq[i:i+len(homolog[0])]) == homolog[0]:
@@ -152,13 +152,13 @@ def distance(s1, s2):
 # is no frameshift the distance between the correct reading frame and
 # the reference should be considerably lower than the distance between
 # the other reading frames and the reference.
-def para_find_homologs(seq1, seq2):
+def para_find_homologs(seq1, seq2, tab):
     trans = []
     distances = []
     frames2 = []
     with concurrent.futures.ProcessPoolExecutor() as executor:
         frames = [0, 1, 2]
-        results = [executor.submit(test_frames, seq1,seq2,f) for f in frames]
+        results = [executor.submit(test_frames, seq1,seq2,f,tab) for f in frames]
         for res in concurrent.futures.as_completed(results):
             if res.result() == 1:
                 return 1
@@ -180,7 +180,7 @@ def para_find_homologs(seq1, seq2):
 
 # Same as find_homologs() but for when the gene of interest is split
 # between two different reading frames.
-def para_join_find_homologs(seqs, seq2):
+def para_join_find_homologs(seqs, seq2, tab):
     final = []
     for seq in seqs:
         trans = []
@@ -188,7 +188,7 @@ def para_join_find_homologs(seqs, seq2):
         frames2 = []
         with concurrent.futures.ProcessPoolExecutor() as executor:
             frames = [0, 1, 2]
-            results = [executor.submit(test_frames, seq,seq2,f) for f in frames]
+            results = [executor.submit(test_frames, seq,seq2,f,tab) for f in frames]
             for res in concurrent.futures.as_completed(results):
                 if res.result() == 1:
                     return 1
@@ -211,9 +211,9 @@ def para_join_find_homologs(seqs, seq2):
 
 # Function that finds the correct reading frame for homolog. Originally
 # a part of find_homologs but was split to enable parallelization.
-def test_frames(seq1, seq2, frame):
-    trans0 = seq2[frame:].translate(stop_symbol='')
-    stops = seq2[frame:].translate()
+def test_frames(seq1, seq2, frame, tab):
+    trans0 = seq2[frame:].translate(stop_symbol='', table=tab)
+    stops = seq2[frame:].translate(table=tab)
     to_align = [SeqRecord(seq1, id='Seq1'), SeqRecord(trans0, id='Seq2')]
     SeqIO.write(to_align, 'tmpfilexyz'+str(frame)+'.fasta', 'fasta')
     kresult = invoke_kalign('tmpfilexyz'+str(frame)+'.fasta', 'outfilexyz'+str(frame)+'.fasta')
@@ -231,12 +231,12 @@ def test_frames(seq1, seq2, frame):
 
 
 # Original non parallel versions
-def find_homologs(seq1, seq2):
+def find_homologs(seq1, seq2, tab):
     trans = []
     distances = []
     for i in range(0, 3):
-        trans0 = seq2[i:].translate(stop_symbol='')
-        stops = seq2[i:].translate()
+        trans0 = seq2[i:].translate(stop_symbol='', table=tab)
+        stops = seq2[i:].translate(table=tab)
         to_align = [SeqRecord(seq1, id='Seq1'), SeqRecord(trans0, id='Seq2')]
         SeqIO.write(to_align, 'tmpfilexyz.fasta', 'fasta')
         kresult = invoke_kalign('tmpfilexyz.fasta', 'outfilexyz.fasta')
@@ -261,14 +261,14 @@ def find_homologs(seq1, seq2):
             distances.index(min(distances)))
 
 
-def join_find_homologs(seqs, seq2):
+def join_find_homologs(seqs, seq2, tab):
     final = []
     for seq in seqs:
         trans = []
         distances = []
         for i in range(0, 3):
-            trans0 = seq2[i:].translate(stop_symbol='')
-            stops = seq2[i:].translate()
+            trans0 = seq2[i:].translate(stop_symbol='', table=tab)
+            stops = seq2[i:].translate(table=tab)
             to_align = [SeqRecord(seq, id='Seq1'),
                         SeqRecord(trans0, id='Seq2')]
             SeqIO.write(to_align, 'tmpfilexyz.fasta', 'fasta')
@@ -312,7 +312,7 @@ def join_find_homologs(seqs, seq2):
 # at the end of a sequence.
 def detect_frameshift(ref, read):
     records = [SeqRecord(ref, id='reference'),
-               SeqRecord(read.translate(), id='read')]
+               SeqRecord(read.translate(table=tab), id='read')]
     SeqIO.write(records, 'tmpfilexyz.fasta', 'fasta')
     invoke_kalign('tmpfilexyz.fasta', 'outfilexyz.fasta')
     seqs = {}
@@ -328,14 +328,14 @@ def detect_frameshift(ref, read):
     ind = diffs.index(max(diffs))*30
     new_distances = [distance(seqs['reference'], seqs['read'])]
     records = [SeqRecord(ref, id='reference'),
-               SeqRecord((read[:ind]+'A'+read[ind:]).translate())]
+               SeqRecord((read[:ind]+'A'+read[ind:]).translate(table=tab))]
     SeqIO.write(records, 'tmpfilexyz.fasta', 'fasta')
     invoke_kalign('tmpfilexyz.fasta', 'outfilexyz.fasta')
     for record in SeqIO.parse('outfilexyz.fasta', 'fasta'):
         seqs[record.id] = str(record.seq)
     new_distances.append(distance(seqs['reference'], seqs['read']))
     records = [SeqRecord(ref, id='reference'),
-               SeqRecord((read[:ind]+'AA'+read[ind:]).translate())]
+               SeqRecord((read[:ind]+'AA'+read[ind:]).translate(table=tab))]
     SeqIO.write(records, 'tmpfilexyz.fasta', 'fasta')
     invoke_kalign('tmpfilexyz.fasta', 'outfilexyz.fasta')
     for record in SeqIO.parse('outfilexyz.fasta', 'fasta'):
@@ -365,7 +365,7 @@ def check_n(seq):
 # homolog for the gene of interest is located. Will also look for any
 # potential frameshift mutations in the gene of interest and throw out
 # the sequence if one is detected.
-def create_lists(reads, seq, og_seqs, join, para):
+def create_lists(reads, seq, og_seqs, join, para, tab):
     seqs = []
     names = []
     ids = []
@@ -375,14 +375,14 @@ def create_lists(reads, seq, og_seqs, join, para):
     for record in SeqIO.parse(reads, 'fasta'):
         if para:
             if join == 0:
-                result = para_find_homologs(seq, record.seq)
+                result = para_find_homologs(seq, record.seq, tab)
             elif join == 1:
-                result = para_join_find_homologs(seq, record.seq)
+                result = para_join_find_homologs(seq, record.seq, tab)
         else:
             if join == 0:
-                result = find_homologs(seq, record.seq)
+                result = find_homologs(seq, record.seq, tab)
             elif join == 1:
-                result = join_find_homologs(seq, record.seq)
+                result = join_find_homologs(seq, record.seq, tab)
         if result == 1:
             err.append(record.id)
         else:
@@ -391,16 +391,16 @@ def create_lists(reads, seq, og_seqs, join, para):
             if join == 0:
                 seqs.append(result[0])
                 og_seqs[record.id] = extract_DNA_seq(record.seq[result[1]:],
-                                                     seqs[-1])
+                                                     seqs[-1], tab)
             elif join == 1:
                 seqs.append(result[0][0]+result[1][0])
-                og_seqs[record.id] = join_extract_DNA_seq(record.seq, result)
+                og_seqs[record.id] = join_extract_DNA_seq(record.seq, result, tab)
             if og_seqs[record.id] == 1:
                 shift = 1
             else:
                 if len(og_seqs[record.id]) > 200 and join == 0:
                     try:
-                        shift = detect_frameshift(seq, og_seqs[record.id])
+                        shift = detect_frameshift(seq, og_seqs[record.id], tab)
                     except:
                         shift = 1
                 else:
@@ -497,16 +497,74 @@ def compressor(seqs, names, ids, og_seqs):
     return new_seqs, new_names, new_ids, new_og_seqs
 
 
-# For when inputs are whole genomes
-def genome_mode(reference, reads, start, end, compress, para):
-    if ',' not in str(start) and ',' not in str(end):
-        start = int(start)-1
-        end = int(end)
-        join = 0
+# Check input FASTA is occupied and doesn't use invalid characters
+def check_input(reference, reads):
+    records = []
+    invalids = ['E', 'F', 'I', 'J', 'L', 'O', 'P', 'Q', 'X', 'Z']
+    try:
+        for record in SeqIO.parse(reference, 'fasta'):
+            if any(x in invalids for x in record.seq):
+                print(f'Input Error: Invalid characters detected in reference sequence')
+                exit()
+            records.append(records)
+        if len(records) != 1:
+            print('User Error: reference input should contain exactly one sequence')
+            exit()
+        records = []
+        for record in SeqIO.parse(reads, 'fasta'):
+            if any(x in invalids for x in record.seq):
+                print(f'Input Error: Invalid characters detected in sequence ID: {record.id}')
+                exit()
+            records.append(record)
+        if len(records) == 0:
+            print('User Error: sequence FASTA file is empty')
+            exit()
+    except:
+        print('User Error: improperly formated FASTA')
+        exit()
+
+
+# Check that translation table chosen is valid
+def check_tab(tab):
+    if tab == None:
+        tab = 1
     else:
-        start = (int(start.split(',')[0])-1, int(start.split(',')[1])-1)
-        end = (int(end.split(',')[0]), int(end.split(',')[1]))
+        if int(tab) in [1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14, 15, 16, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 33]:
+            tab = int(tab)
+        else:
+            print('User Error: Chosen translation table number is invalid. See: https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi for valid options')
+            exit()
+    return tab
+
+
+# For when inputs are whole genomes
+def genome_mode(reference, reads, start, end, compress, para, tab):
+    check_input(reference, reads)
+    tab = check_tab(tab)
+    # Check that start and end coordinates are present and valid
+    if ',' not in str(start) and ',' not in str(end):
+        try:
+            start = int(start)-1
+            end = int(end)
+        except:
+            print('User Error: invalid start/end coordinate(s)')
+            exit()
+        join = 0
+        if start >= end:
+            print('User Error: start coordinate(s) must be less than the end coordinate(s)')
+            exit()
+    else:
+        try:
+            start = (int(start.split(',')[0])-1, int(start.split(',')[1])-1)
+            end = (int(end.split(',')[0]), int(end.split(',')[1]))
+        except:
+            print('User Error: invalid start/end coordinate(s)')
+            exit()
         join = 1
+        if start[0] >= end[0] or start[1] >= end[1]:
+            print('User Error: start coordinate(s) must be less than the end coordinate(s)')
+            exit()
+
     # Find protein sequence of gene of interest and extract the original DNA
     # sequence (only for genome mode)
     og_seqs = {}
@@ -514,13 +572,13 @@ def genome_mode(reference, reads, start, end, compress, para):
         idd = record.id
         name = record.description
         if isinstance(start, tuple):
-            seq = (record.seq[start[0] % 3:].translate(table=1)[start[0]//3:end[0]//3],
-                   record.seq[start[1] % 3:].translate(table=1)[start[1]//3:end[1]//3])
+            seq = (record.seq[start[0] % 3:].translate(table=tab)[start[0]//3:end[0]//3],
+                   record.seq[start[1] % 3:].translate(table=tab)[start[1]//3:end[1]//3])
             og_seqs[record.id] = record.seq[start[0]:end[0]]+record.seq[start[1]:end[1]]
         else:
-            seq = record.seq[start % 3:].translate()[start//3:end//3]
+            seq = record.seq[start % 3:].translate(table=tab)[start//3:end//3]
             og_seqs[record.id] = record.seq[start:end]
-    seqs, names, ids, og_seqs, err = create_lists(reads, seq, og_seqs, join, para)
+    seqs, names, ids, og_seqs, err = create_lists(reads, seq, og_seqs, join, para, tab)
     if compress:
         seqs, names, ids, og_seqs = compressor(seqs, names, ids, og_seqs)
     if join == 1:
@@ -547,7 +605,9 @@ def genome_mode(reference, reads, start, end, compress, para):
 
 
 # For when inputs are in-frame genes
-def gene_mode(reference, reads, compress):
+def gene_mode(reference, reads, compress, tab):
+    check_input(reference, reads)
+    tab = check_tab(tab)
     ids = []
     names = []
     seqs = []
@@ -556,15 +616,15 @@ def gene_mode(reference, reads, compress):
     for record in SeqIO.parse(reference, 'fasta'):
         ids.append(record.id)
         names.append(record.description)
-        seqs.append(record.seq.translate())
+        seqs.append(record.seq.translate(table=tab))
         og_seqs[record.id] = record.seq
     for record in SeqIO.parse(reads, 'fasta'):
-        if '*' in record.seq.translate()[:-1]:
+        if '*' in record.seq.translate(table=tab)[:-1]:
             err.append(record.id)
         else:
             ids.append(record.id)
             names.append(record.description)
-            seqs.append(record.seq.translate())
+            seqs.append(record.seq.translate(table=tab))
             og_seqs[record.id] = record.seq
     records = [SeqRecord(seqs[0], id=ids[0], description=names[0])]
     if compress:
@@ -584,15 +644,17 @@ def gene_mode(reference, reads, compress):
 
 
 # For when reference input is an in-frame gene but the reads are whole genomes
-def mixed_mode(reference, reads, compress, para):
+def mixed_mode(reference, reads, compress, para, tab):
+    check_input(reference, reads)
+    tab = check_tab(tab)
     join = 0
     og_seqs = {}
     for record in SeqIO.parse(reference, 'fasta'):
         idd = record.id
         name = record.description
-        seq = record.seq.translate()
+        seq = record.seq.translate(table=tab)
         og_seqs[record.id] = record.seq
-    seqs, names, ids, og_seqs, err = create_lists(reads, seq, og_seqs, join, para)
+    seqs, names, ids, og_seqs, err = create_lists(reads, seq, og_seqs, join, para, tab)
     if compress:
         seqs, names, ids, og_seqs = compressor(seqs, names, ids, og_seqs)
     if join == 1:
