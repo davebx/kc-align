@@ -13,9 +13,11 @@ warnings.filterwarnings('ignore')
 import concurrent.futures  # noqa: E402
 
 
-# Given a result from the aligning with Kalign, trims residues from
-# longer 2nd sequence so it matches the 1st
 def trim(align, trans):
+    """
+    Given a result from the aligning with Kalign, trims residues from
+    longer 2nd sequence so it matches the 1st
+    """
     count = 0
     for i in align[0]:
         if i != '-':
@@ -38,9 +40,11 @@ def trim(align, trans):
     return no_gaps
 
 
-# Kalign3 might take a few seconds on larger datasets. Throw in a wait()
-# just to be safe.
 def invoke_kalign(input_file, output_file):
+    """
+    Kalign3 might take a few seconds on larger datasets. Throw in a wait()
+    just to be safe.
+    """
     if not os.path.exists(input_file):
         print('Input file missing')
         exit(1)
@@ -73,9 +77,11 @@ def invoke_kalign(input_file, output_file):
         return 0
 
 
-# Reinserts '*' at end of gapped alignment to make finding the end of
-# the aligned portion more accurate
 def reinsert_star(seq, gapped_seq):
+    """
+    Reinserts '*' at end of gapped alignment to make finding the end of
+    the aligned portion more accurate
+    """
     length = len(seq)
     count = 0
     for i in range(len(gapped_seq)):
@@ -88,9 +94,11 @@ def reinsert_star(seq, gapped_seq):
     return gapped_seq[:start]+gapped_seq[start:i+1]+'*'+gapped_seq[i+1:]
 
 
-# Given a single gene's protein sequence and its entire DNA genome,
-# finds the DNA seqeunce that corresponds with the given gene.
 def extract_DNA_seq(seq, trans, tab):
+    """
+    Given a single gene's protein sequence and its entire DNA genome,
+    finds the DNA seqeunce that corresponds with the given gene.
+    """
     Pseq = seq.translate(table=tab)
     check = 0
     for i in range(len(Pseq)):
@@ -103,9 +111,11 @@ def extract_DNA_seq(seq, trans, tab):
         return 1
 
 
-# Same as extract_DNA_seq() but for when the gene of interests is split
-# between two different reading frames.
 def join_extract_DNA_seq(seq, homologs, tab):
+    """
+    Same as extract_DNA_seq() but for when the gene of interests is split
+    between two different reading frames.
+    """
     Dseqs = []
     for homolog in homologs:
         shift = homolog[1]
@@ -122,8 +132,8 @@ def join_extract_DNA_seq(seq, homologs, tab):
     return Dseqs[0]+Dseqs[1]
 
 
-# Calculates Levenshtein distance between two strings.
 def distance(s1, s2):
+    """Calculates Levenshtein distance between two strings."""
     if len(s1) > len(s2):
         s1, s2 = s2, s1
     distances = range(len(s1)+1)
@@ -139,19 +149,21 @@ def distance(s1, s2):
     return distances[-1]
 
 
-# Given a protein sequence and genome sequence finds the protein
-# sequence of the homologous protein in the genome (currently checks
-# the 3 coding strand reading frames).
-# Calculates the Levenshtein distance of each candidate peptide to
-# determine the correct reading frame (lowest distance is correct).
-# To detect frameshifts, the Levenshtein distances of each reading frame
-# with the reference are compard. If the distance of the frame with the
-# lowest distance divided by either of the other reading frame's
-# distances is between 0.9 and 1.1 then a frameshift is likely. If there
-# is no frameshift the distance between the correct reading frame and
-# the reference should be considerably lower than the distance between
-# the other reading frames and the reference.
 def para_find_homologs(seq1, seq2, tab):
+    """
+    Given a protein sequence and genome sequence finds the protein
+    sequence of the homologous protein in the genome (currently checks
+    the 3 coding strand reading frames).
+    Calculates the Levenshtein distance of each candidate peptide to
+    determine the correct reading frame (lowest distance is correct).
+    To detect frameshifts, the Levenshtein distances of each reading frame
+    with the reference are compard. If the distance of the frame with the
+    lowest distance divided by either of the other reading frame's
+    distances is between 0.9 and 1.1 then a frameshift is likely. If there
+    is no frameshift the distance between the correct reading frame and
+    the reference should be considerably lower than the distance between
+    the other reading frames and the reference.
+    """
     trans = []
     distances = []
     frames2 = []
@@ -177,9 +189,11 @@ def para_find_homologs(seq1, seq2, tab):
             frames2[distances.index(min(distances))])
 
 
-# Same as find_homologs() but for when the gene of interest is split
-# between two different reading frames.
 def para_join_find_homologs(seqs, seq2, tab):
+    """
+    Same as find_homologs() but for when the gene of interest is split
+    between two different reading frames.
+    """
     final = []
     for seq in seqs:
         trans = []
@@ -362,11 +376,13 @@ def check_n(seq):
         return 1
 
 
-# Use pairwise alignment with Kalign to determine the frame that the
-# homolog for the gene of interest is located. Will also look for any
-# potential frameshift mutations in the gene of interest and throw out
-# the sequence if one is detected.
 def create_lists(reads, seq, og_seqs, join, para, tab):
+    """
+    Use pairwise alignment with Kalign to determine the frame that the
+    homolog for the gene of interest is located. Will also look for any
+    potential frameshift mutations in the gene of interest and throw out
+    the sequence if one is detected.
+    """
     seqs = []
     names = []
     ids = []
@@ -419,10 +435,12 @@ def create_lists(reads, seq, og_seqs, join, para, tab):
     return seqs, names, ids, og_seqs, err
 
 
-# Create multiFASTA file with protein sequences of the gene of interest
-# and the in-frame sequences of the genomes to be multiple aligned and
-# then align with Kalign.
 def combine_align(records, ids, names, seqs):
+    """
+    Create multiFASTA file with protein sequences of the gene of interest
+    and the in-frame sequences of the genomes to be multiple aligned and
+    then align with Kalign.
+    """
     for i, n, s in zip(ids, names, seqs):
         records.append(SeqRecord(s, id=i, description=n))
     SeqIO.write(records, 'pre_align.fasta', 'fasta')
@@ -430,9 +448,11 @@ def combine_align(records, ids, names, seqs):
     subprocess.call(['rm', 'pre_align.fasta'])
 
 
-# Restore original codon sequence while maintaining gaps and write to
-# file.
 def restore_codons(og_seqs, names):
+    """
+    Restore original codon sequence while maintaining gaps and write to
+    file.
+    """
     records = []
     for record in SeqIO.parse('protein_align.fasta', 'fasta'):
         prot_seq = record.seq
@@ -453,9 +473,11 @@ def restore_codons(og_seqs, names):
     SeqIO.write(records, 'codon_align.clustal', 'clustal')
 
 
-# Checks sequences for duplicates and compresses them into a single
-# representaitve sequence if found
 def compressor(seqs, names, ids, og_seqs):
+    """
+    Checks sequences for duplicates and compresses them into a single
+    representaitve sequence if found
+    """
     all_sames = [[]]
     for index, idd1 in enumerate(ids):
         for s in all_sames:
@@ -498,8 +520,8 @@ def compressor(seqs, names, ids, og_seqs):
     return new_seqs, new_names, new_ids, new_og_seqs
 
 
-# Check input FASTA is occupied and doesn't use invalid characters
 def check_input(reference, reads):
+    """Check input FASTA is occupied and doesn't use invalid characters"""
     records = []
     invalids = ['E', 'F', 'I', 'J', 'L', 'O', 'P', 'Q', 'X', 'Z']
     try:
@@ -525,8 +547,8 @@ def check_input(reference, reads):
         exit()
 
 
-# Check that translation table chosen is valid
 def check_tab(tab):
+    """Check that translation table chosen is valid"""
     if tab is None:
         tab = 1
     else:
@@ -538,8 +560,8 @@ def check_tab(tab):
     return tab
 
 
-# For when inputs are whole genomes
 def genome_mode(reference, reads, start, end, compress, para, tab):
+    """For when inputs are whole genomes"""
     check_input(reference, reads)
     tab = check_tab(tab)
     # Check that start and end coordinates are present and valid
@@ -605,8 +627,8 @@ def genome_mode(reference, reads, start, end, compress, para, tab):
         print('\n')
 
 
-# For when inputs are in-frame genes
 def gene_mode(reference, reads, compress, tab):
+    """For when inputs are in-frame genes"""
     check_input(reference, reads)
     tab = check_tab(tab)
     ids = []
@@ -644,8 +666,8 @@ def gene_mode(reference, reads, compress, tab):
         print('\n')
 
 
-# For when reference input is an in-frame gene but the reads are whole genomes
 def mixed_mode(reference, reads, compress, para, tab):
+    """For when reference input is an in-frame gene but the reads are whole genomes"""
     check_input(reference, reads)
     tab = check_tab(tab)
     join = 0
