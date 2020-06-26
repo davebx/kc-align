@@ -157,7 +157,7 @@ def para_find_homologs(seq1, seq2, tab):
     frames2 = []
     with concurrent.futures.ProcessPoolExecutor() as executor:
         frames = [0, 1, 2]
-        results = [executor.submit(test_frames, seq1,seq2,f,tab) for f in frames]
+        results = [executor.submit(test_frames, seq1, seq2, f, tab) for f in frames]
         for res in concurrent.futures.as_completed(results):
             if res.result() == 1:
                 return 1
@@ -187,7 +187,7 @@ def para_join_find_homologs(seqs, seq2, tab):
         frames2 = []
         with concurrent.futures.ProcessPoolExecutor() as executor:
             frames = [0, 1, 2]
-            results = [executor.submit(test_frames, seq,seq2,f,tab) for f in frames]
+            results = [executor.submit(test_frames, seq, seq2, f, tab) for f in frames]
             for res in concurrent.futures.as_completed(results):
                 if res.result() == 1:
                     return 1
@@ -397,7 +397,7 @@ def create_lists(reads, seq, og_seqs, join, para, tab):
                 if len(og_seqs[record.id]) > 200 and join == 0:
                     try:
                         shift = detect_frameshift(seq, og_seqs[record.id], tab)
-                    except:
+                    except Exception:
                         shift = 1
                 else:
                     shift = 0
@@ -515,14 +515,14 @@ def check_input(reference, reads):
         if len(records) == 0:
             print('User Error: sequence FASTA file is empty')
             exit()
-    except:
+    except Exception:
         print('User Error: improperly formated FASTA')
         exit()
 
 
 # Check that translation table chosen is valid
 def check_tab(tab):
-    if tab == None:
+    if tab is None:
         tab = 1
     else:
         if int(tab) in [1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14, 15, 16, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 33]:
@@ -542,7 +542,7 @@ def genome_mode(reference, reads, start, end, compress, para, tab):
         try:
             start = int(start)-1
             end = int(end)
-        except:
+        except Exception:
             print('User Error: invalid start/end coordinate(s)')
             exit()
         join = 0
@@ -553,7 +553,7 @@ def genome_mode(reference, reads, start, end, compress, para, tab):
         try:
             start = (int(start.split(',')[0])-1, int(start.split(',')[1])-1)
             end = (int(end.split(',')[0]), int(end.split(',')[1]))
-        except:
+        except Exception:
             print('User Error: invalid start/end coordinate(s)')
             exit()
         join = 1
