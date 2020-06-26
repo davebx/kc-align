@@ -49,7 +49,7 @@ def invoke_kalign(input_file, output_file):
     # Pass in a fake pty to work around this behavior, which is appropriate
     # for command-line usage but doesn't work in a headless environment.
     fakepty, alsofakepty = pty.openpty()
-    command = shlex.split('kalign -i %s -o %s' % (input_file, output_file))
+    command = shlex.split(f'kalign -i {input_file} -o {output_file}')
     kaligner = subprocess.Popen(command, stderr=subprocess.PIPE,
                                 stdout=subprocess.PIPE, stdin=fakepty)
     kaligner.wait()
