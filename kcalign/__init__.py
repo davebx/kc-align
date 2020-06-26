@@ -57,7 +57,7 @@ def invoke_kalign(input_file, output_file):
     stdout, stderr = kaligner.communicate()
     os.close(fakepty)
     os.close(alsofakepty)
-    # If Kalign fails try again with MAFFT
+    # If Kalign fails try again with MAFFT (Kalign sometimes seg faults on some data)
     if kaligner.returncode != 0:
         with open(output_file, 'w') as out_fh:
             command = shlex.split('mafft %s' % input_file)
@@ -104,7 +104,7 @@ def extract_DNA_seq(seq, trans, tab):
         return 1
 
 
-# Same a extract_DNA_seq() but for when the gene of interests is split
+# Same as extract_DNA_seq() but for when the gene of interests is split
 # between two different reading frames.
 def join_extract_DNA_seq(seq, homologs, tab):
     Dseqs = []
@@ -228,8 +228,6 @@ def test_frames(seq1, seq2, frame, tab):
     return (trans, dist, frame)
 
 
-
-
 # Original non parallel versions
 def find_homologs(seq1, seq2, tab):
     trans = []
@@ -295,8 +293,6 @@ def join_find_homologs(seqs, seq2, tab):
     return final
 
 
-
-
 # Determines if the homologous sequence found by find_homologs contains
 # a frameshift mutation by first calculating a sliding window of edit
 # distances in order to find the approximate location of the indel (done
@@ -347,6 +343,7 @@ def detect_frameshift(ref, read):
         return 1
     else:
         return 0
+
 
 # Calculates N cotent of sequences. Returns 0 if N content is less than 5%
 # and 1 if it is above 5%
