@@ -53,7 +53,7 @@ def invoke_kalign(input_file, output_file):
     kaligner = subprocess.Popen(command, stderr=subprocess.PIPE,
                                 stdout=subprocess.PIPE, stdin=fakepty)
     kaligner.wait()
-    stdout, stderr = kaligner.communicate()
+    _, stderr = kaligner.communicate()
     os.close(fakepty)
     os.close(alsofakepty)
     # If Kalign fails try again with MAFFT (Kalign sometimes seg faults on some data)
