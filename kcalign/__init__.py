@@ -63,7 +63,7 @@ def invoke_kalign(input_file, output_file):
     # If Kalign fails try again with MAFFT (Kalign sometimes seg faults on some data)
     if kaligner.returncode != 0:
         with open(output_file, 'w') as out_fh:
-            command = shlex.split('mafft %s' % input_file)
+            command = shlex.split(f'mafft {input_file}')
             mafft = subprocess.Popen(command, stdout=out_fh)
             mafft.wait()
             _, stderr = mafft.communicate()
@@ -73,6 +73,7 @@ def invoke_kalign(input_file, output_file):
             return 1
         else:
             return 0
+        return 2 # Return 2 if Kalign fails but MAFFT succeeds
     else:
         return 0
 
@@ -446,7 +447,10 @@ def combine_align(records, ids, names, seqs):
     for i, n, s in zip(ids, names, seqs):
         records.append(SeqRecord(s, id=i, description=n))
     SeqIO.write(records, 'pre_align.fasta', 'fasta')
-    invoke_kalign('pre_align.fasta', 'protein_align.fasta')
+    kresult = invoke_kalign('pre_align.fasta', 'protein_align.fasta')
+    if kresult == 2:
+        print('Alternative aligner MAFFT used because primary aligner '
+              'Kalign failed')
     subprocess.call(['rm', 'pre_align.fasta'])
 
 
