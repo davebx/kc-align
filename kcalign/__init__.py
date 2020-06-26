@@ -305,7 +305,7 @@ def join_find_homologs(seqs, seq2, tab):
 # mutation and the function will return a value of 1. If no frameshift
 # is detected, it returns 0. Not effective for frameshifts that occur
 # at the end of a sequence.
-def detect_frameshift(ref, read):
+def detect_frameshift(ref, read, tab):
     records = [SeqRecord(ref, id='reference'),
                SeqRecord(read.translate(table=tab), id='read')]
     SeqIO.write(records, 'tmpfilexyz.fasta', 'fasta')
