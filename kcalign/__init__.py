@@ -10,7 +10,7 @@ import sys
 import subprocess
 import warnings
 warnings.filterwarnings('ignore')
-import concurrent.futures
+import concurrent.futures  # noqa: E402
 
 
 # Given a result from the aligning with Kalign, trims residues from
@@ -292,20 +292,23 @@ def join_find_homologs(seqs, seq2, tab):
     return final
 
 
-# Determines if the homologous sequence found by find_homologs contains
-# a frameshift mutation by first calculating a sliding window of edit
-# distances in order to find the approximate location of the indel (done
-# by finding the region with the largest increase in edit distance
-# between windows). An extra nucleotide is then inserted in that region,
-# the sequence is converted to amino acids, realigned with the reference
-# and the edit distance between the alignments calculated. This is
-# repeated one more time and if the edit distance of the alignments
-# after inserting on or two extra nucleotides is less than the distance
-# without adding nucleotides then there is likely to be a frameshift
-# mutation and the function will return a value of 1. If no frameshift
-# is detected, it returns 0. Not effective for frameshifts that occur
-# at the end of a sequence.
 def detect_frameshift(ref, read, tab):
+    """
+    Determines if the homologous sequence found by find_homologs contains
+    a frameshift mutation by first calculating a sliding window of edit
+    distances in order to find the approximate location of the indel (done
+    by finding the region with the largest increase in edit distance
+    between windows). An extra nucleotide is then inserted in that region,
+    the sequence is converted to amino acids, realigned with the reference
+    and the edit distance between the alignments calculated. This is
+    repeated one more time and if the edit distance of the alignments
+    after inserting on or two extra nucleotides is less than the distance
+    without adding nucleotides then there is likely to be a frameshift
+    mutation and the function will return a value of 1. If no frameshift
+    is detected, it returns 0. Not effective for frameshifts that occur
+    at the end of a sequence.
+    """
+
     records = [SeqRecord(ref, id='reference'),
                SeqRecord(read.translate(table=tab), id='read')]
     SeqIO.write(records, 'tmpfilexyz.fasta', 'fasta')
@@ -344,9 +347,11 @@ def detect_frameshift(ref, read, tab):
         return 0
 
 
-# Calculates N cotent of sequences. Returns 0 if N content is less than 5%
-# and 1 if it is above 5%
 def check_n(seq):
+    """
+    Calculates N cotent of sequences. Returns 0 if N content is less than 5%
+    and 1 if it is above 5%
+    """
     n = 0
     for i in seq:
         if i == 'N':
