@@ -9,7 +9,6 @@ import shlex
 import sys
 import subprocess
 import warnings
-import itertools
 warnings.filterwarnings('ignore')
 import concurrent.futures
 
