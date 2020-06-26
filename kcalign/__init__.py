@@ -97,7 +97,7 @@ def reinsert_star(seq, gapped_seq):
 def extract_DNA_seq(seq, trans, tab):
     """
     Given a single gene's protein sequence and its entire DNA genome,
-    finds the DNA seqeunce that corresponds with the given gene.
+    finds the DNA sequence that corresponds with the given gene.
     """
     Pseq = seq.translate(table=tab)
     check = 0
@@ -157,7 +157,7 @@ def para_find_homologs(seq1, seq2, tab):
     Calculates the Levenshtein distance of each candidate peptide to
     determine the correct reading frame (lowest distance is correct).
     To detect frameshifts, the Levenshtein distances of each reading frame
-    with the reference are compard. If the distance of the frame with the
+    with the reference are compared. If the distance of the frame with the
     lowest distance divided by either of the other reading frame's
     distances is between 0.9 and 1.1 then a frameshift is likely. If there
     is no frameshift the distance between the correct reading frame and
@@ -222,9 +222,11 @@ def para_join_find_homologs(seqs, seq2, tab):
     return final
 
 
-# Function that finds the correct reading frame for homolog. Originally
-# a part of find_homologs but was split to enable parallelization.
 def test_frames(seq1, seq2, frame, tab):
+    """
+    Function that finds the correct reading frame for homolog. Originally
+    a part of find_homologs but was split to enable parallelization.
+    """
     trans0 = seq2[frame:].translate(stop_symbol='', table=tab)
     stops = seq2[frame:].translate(table=tab)
     to_align = [SeqRecord(seq1, id='Seq1'), SeqRecord(trans0, id='Seq2')]
@@ -363,7 +365,7 @@ def detect_frameshift(ref, read, tab):
 
 def check_n(seq):
     """
-    Calculates N cotent of sequences. Returns 0 if N content is less than 5%
+    Calculates N content of sequences. Returns 0 if N content is less than 5%
     and 1 if it is above 5%
     """
     n = 0
@@ -476,7 +478,7 @@ def restore_codons(og_seqs, names):
 def compressor(seqs, names, ids, og_seqs):
     """
     Checks sequences for duplicates and compresses them into a single
-    representaitve sequence if found
+    representative sequence if found
     """
     all_sames = [[]]
     for index, idd1 in enumerate(ids):
@@ -543,7 +545,7 @@ def check_input(reference, reads):
             print('User Error: sequence FASTA file is empty')
             exit()
     except Exception:
-        print('User Error: improperly formated FASTA')
+        print('User Error: improperly formatted FASTA')
         exit()
 
 
