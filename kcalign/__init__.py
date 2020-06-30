@@ -47,7 +47,7 @@ def invoke_kalign(input_file, output_file):
     """
     if not os.path.exists(input_file):
         print('Input file missing')
-        exit(1)
+        return 1
     # If STDIN is not a tty, kalign3 assumes that STDIN is an input file
     # and fails to detect its type.
     # Pass in a fake pty to work around this behavior, which is appropriate
@@ -534,23 +534,23 @@ def check_input(reference, reads):
         for record in SeqIO.parse(reference, 'fasta'):
             if any(x in invalids for x in record.seq):
                 print(f'Input Error: Invalid characters detected in reference sequence')
-                exit()
+                return 1
             records.append(records)
         if len(records) != 1:
             print('User Error: reference input should contain exactly one sequence')
-            exit()
+            return 1
         records = []
         for record in SeqIO.parse(reads, 'fasta'):
             if any(x in invalids for x in record.seq):
                 print(f'Input Error: Invalid characters detected in sequence ID: {record.id}')
-                exit()
+                return 1
             records.append(record)
         if len(records) == 0:
             print('User Error: sequence FASTA file is empty')
-            exit()
+            return 1
     except Exception:
         print('User Error: improperly formatted FASTA')
-        exit()
+        return 1
 
 
 def check_tab(tab):
@@ -562,7 +562,7 @@ def check_tab(tab):
             tab = int(tab)
         else:
             print('User Error: Chosen translation table number is invalid. See: https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi for valid options')
-            exit()
+            return 1
     return tab
 
 
@@ -577,22 +577,22 @@ def genome_mode(reference, reads, start, end, compress, para, tab):
             end = int(end)
         except Exception:
             print('User Error: invalid start/end coordinate(s)')
-            exit()
+            return 1
         join = 0
         if start >= end:
             print('User Error: start coordinate(s) must be less than the end coordinate(s)')
-            exit()
+            return 1
     else:
         try:
             start = (int(start.split(',')[0])-1, int(start.split(',')[1])-1)
             end = (int(end.split(',')[0]), int(end.split(',')[1]))
         except Exception:
             print('User Error: invalid start/end coordinate(s)')
-            exit()
+            return 1
         join = 1
         if start[0] >= end[0] or start[1] >= end[1]:
             print('User Error: start coordinate(s) must be less than the end coordinate(s)')
-            exit()
+            return 1
 
     # Find protein sequence of gene of interest and extract the original DNA
     # sequence (only for genome mode)
@@ -619,7 +619,7 @@ def genome_mode(reference, reads, start, end, compress, para, tab):
     records = [SeqRecord(seq, id=idd, description=name)]
     if len(seqs) == 0:
         print('No homologous sequences were found')
-        exit()
+        return 1
     combine_align(records, ids, names, seqs)
     names = dict(zip(ids, names))
     names[idd] = name
@@ -631,6 +631,7 @@ def genome_mode(reference, reads, start, end, compress, para, tab):
         for e in err:
             print(e)
         print('\n')
+    return 0
 
 
 def gene_mode(reference, reads, compress, tab):
@@ -670,6 +671,7 @@ def gene_mode(reference, reads, compress, tab):
         for e in err:
             print(e)
         print('\n')
+    return 0
 
 
 def mixed_mode(reference, reads, compress, para, tab):
@@ -694,7 +696,7 @@ def mixed_mode(reference, reads, compress, para, tab):
     records = [SeqRecord(seq, id=idd, description=name)]
     if len(seqs) == 0:
         print('No homologous sequences were found')
-        exit()
+        return 1
     combine_align(records, ids, names, seqs)
     names = dict(zip(ids, names))
     names[idd] = name
@@ -706,3 +708,4 @@ def mixed_mode(reference, reads, compress, para, tab):
         for e in err:
             print(e)
         print('\n')
+    return 0
