@@ -17,11 +17,11 @@ def main():
     args = parser.parse_args()
 
     if args.mode == 'genome':
-        genome_mode(args.reference, args.seqs, args.start, args.end, args.compress, args.para, args.table)
+        return genome_mode(args.reference, args.seqs, args.start, args.end, args.compress, args.para, args.table)
     elif args.mode == 'gene':
-        gene_mode(args.reference, args.seqs, args.compress, args.table)
+        return gene_mode(args.reference, args.seqs, args.compress, args.table)
     else:
-        mixed_mode(args.reference, args.seqs, args.compress, args.para, args.table)
+        return mixed_mode(args.reference, args.seqs, args.compress, args.para, args.table)
 
 if __name__ == '__main__':
     exit(main())
