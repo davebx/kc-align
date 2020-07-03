@@ -438,7 +438,7 @@ def create_lists(reads, seq, og_seqs, join, para, tab):
     return seqs, names, ids, og_seqs, err
 
 
-def combine_align(records, ids, names, seqs):
+def combine_align(records, ids, names, seqs, mode):
     """
     Create multiFASTA file with protein sequences of the gene of interest
     and the in-frame sequences of the genomes to be multiple aligned and
@@ -451,7 +451,8 @@ def combine_align(records, ids, names, seqs):
     if kresult == 2:
         print('Alternative aligner MAFFT used because primary aligner '
               'Kalign failed')
-    subprocess.call(['rm', 'pre_align.fasta'])
+    if mode == 'gene':
+        subprocess.call(['rm', 'pre_align.fasta'])
 
 
 def restore_codons(og_seqs, names):
@@ -620,7 +621,7 @@ def genome_mode(reference, reads, start, end, compress, para, tab):
     if len(seqs) == 0:
         print('No homologous sequences were found')
         return 1
-    combine_align(records, ids, names, seqs)
+    combine_align(records, ids, names, seqs, 'genome')
     names = dict(zip(ids, names))
     names[idd] = name
     restore_codons(og_seqs, names)
@@ -660,7 +661,7 @@ def gene_mode(reference, reads, compress, tab):
     if compress:
         seqs, names, ids, og_seqs = compressor(seqs[1:], names[1:], ids[1:],
                                                og_seqs)
-    combine_align(records, ids, names, seqs)
+    combine_align(records, ids, names, seqs, 'gene')
     new_names = dict(zip(ids, names))
     new_names[records[0].id] = records[0].description
     restore_codons(og_seqs, new_names)
@@ -697,7 +698,7 @@ def mixed_mode(reference, reads, compress, para, tab):
     if len(seqs) == 0:
         print('No homologous sequences were found')
         return 1
-    combine_align(records, ids, names, seqs)
+    combine_align(records, ids, names, seqs, 'mixed')
     names = dict(zip(ids, names))
     names[idd] = name
     restore_codons(og_seqs, names)
